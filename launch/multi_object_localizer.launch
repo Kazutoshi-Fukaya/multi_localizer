@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="config_path" default="$(find multi_localizer)/config" />
+
+	<!--map_server -->
+	<arg name="is_map" default="true" />
+	<group if="$(arg is_map)" >
+		<node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/spare/map.yaml" />
+	</group>
+
+	<!-- bag -->
+	<arg name="is_bag" default="true" />
+	<group if="$(arg is_bag)" >
+		<include file="$(find multi_localizer)/launch/bags_play.launch" >
+			<arg name="is_roomba1" value="true" />
+			<arg name="is_roomba2" value="true" />
+			<arg name="is_roomba3" value="false" />
+			<arg name="is_roomba4" value="false" />
+			<arg name="is_roomba5" value="false" />
+			<arg name="is_roomba6" value="false" />
+		</include>
+	</group>
+
+	<!-- amcl_pose_republisher (roomba1) -->
+	<!-- <include file="$(find multi_localizer)/launch/amcl_pose_republisher.launch" > -->
+        <!-- <arg name="roomba" value="roomba1"/> -->
+    <!-- </include> -->
+
+	<!-- single_mcl (rooomba1) -->
+	<include file="$(find multi_localizer)/launch/single_mcl.launch" >
+        <arg name="roomba" value="roomba1"/>
+		<arg name="is_map" value="false" />
+		<arg name="is_rviz" value="false" />
+    </include>
+
+	<!-- object_localizer (roomba2) -->
+	<include file="$(find multi_localizer)/launch/object_localizer.launch" >
+        <arg name="roomba"           value="roomba2"/>
+		<arg name="is_map"           value="false" />
+		<arg name="is_bag"           value="false" />
+		<arg name="is_rviz"          value="false" />
+		<arg name="publish_database" value="true" />
+    </include>
+
+	<!-- object_localizer (roomba3) -->
+	<include file="$(find multi_localizer)/launch/object_localizer.launch" >
+        <arg name="roomba"           value="roomba3"/>
+		<arg name="is_map"           value="false" />
+		<arg name="is_bag"           value="false" />
+		<arg name="is_rviz"          value="false" />
+		<arg name="publish_database" value="false" />
+    </include>
+
+	<!-- object_localizer (roomba4) -->
+	<include file="$(find multi_localizer)/launch/object_localizer.launch" >
+        <arg name="roomba"           value="roomba4"/>
+		<arg name="is_map"           value="false" />
+		<arg name="is_bag"           value="false" />
+		<arg name="is_rviz"          value="false" />
+		<arg name="publish_database" value="false" />
+    </include>
+
+	<!-- rviz -->
+	<arg name="is_rviz" default="true" />
+    <group if="$(arg is_rviz)" >
+        <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg config_path)/rviz/object_localizer/rviz.rviz" />
+    </group>
+
+</launch>

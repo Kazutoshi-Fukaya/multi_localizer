@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="config_path" default="$(find multi_localizer)/config" />
+	<arg name="roomba"    default="roomba1" />
+
+	<!--map_server -->
+	<arg name="is_map" default="true" />
+	<group if="$(arg is_map)" >
+		<node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/spare/map.yaml" />
+	</group>
+
+	<!-- tf -->
+	<include file="$(find multi_localizer)/launch/tf_broadcaster.launch" >
+        <arg name="roomba" value="$(arg roomba)"/>
+    </include>
+
+	<!-- bag -->
+	<arg name="is_bag" default="true" />
+	<group if="$(arg is_bag)" >
+		<include file="$(find multi_localizer)/launch/bags_play.launch" />
+	</group>
+
+	<!-- object_localizer -->
+	<arg name="publish_database" default="true" />
+	<node pkg="multi_localizer" type="object_localizer" name="$(arg roomba)_object_localizer" >
+		<!-- topic -->
+		<remap from="odom_in"   to="$(arg roomba)/roomba/odometry" />
+		<remap from="ops_in"    to="$(arg roomba)/object_positions" />
+		<remap from="ocps_in"   to="$(arg roomba)/object_color_positions" />
+		<remap from="pose_out"  to="$(arg roomba)/pose" />
+		<remap from="poses_out" to="$(arg roomba)/poses" />
+
+		<!-- params -->
+		<param name="IS_TF"                  value="true" />
+		<param name="USE_OPS_MSG"            value="true" />
+		<param name="USE_OCPS_MSG"           value="true" />
+		<param name="PUBLISH_DATABASE"       value="$(arg publish_database)" />
+		<param name="BASE_LINK_FRAME_ID"     value="$(arg roomba)/base_link" />
+		<param name="INIT_OBJECTS_FILE_NAME" value="$(arg config_path)/init_info/20220224.csv" />
+		
+		<rosparam command="load" file="$(arg config_path)/params/robot_name_list.yaml" />
+		<rosparam command="load" file="$(arg config_path)/params/object_params.yaml" />
+		<rosparam command="load" file="$(arg config_path)/params/robot_element.yaml" />
+		<rosparam command="load" file="$(arg config_path)/params/object_localizer.yaml" />
+	</node>
+
+	<!-- rviz -->
+	<arg name="is_rviz" default="true" />
+    <group if="$(arg is_rviz)" >
+        <node pkg="rviz" type="rviz" name="$(arg roomba)_rviz" args="-d $(arg config_path)/rviz/object_localizer/$(arg roomba).rviz" />
+    </group>
+
+</launch>

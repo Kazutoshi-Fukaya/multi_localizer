@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="config_path" default="$(find multi_localizer)/config" />
+	<arg name="roomba"    default="roomba1" />
+
+	<!--map_server -->
+	<arg name="is_map" default="false" />
+	<group if="$(arg is_map)" >
+		<node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/map.yaml" />
+	</group>
+
+	<!-- tf -->
+	<include file="$(find multi_localizer)/launch/tf_broadcaster.launch" >
+        <arg name="roomba" value="$(arg roomba)"/>
+    </include>
+
+	<!-- single_mcl -->
+	<node pkg="multi_localizer" type="amcl_pose_republisher" name="$(arg roomba)_amcl_pose_republisher" >
+		<!-- topic -->
+		<remap from="pose_in"  to="$(arg roomba)/amcl_pose" />
+		<remap from="odom_in"  to="$(arg roomba)/roomba/odometry" />
+		<remap from="pose_out" to="$(arg roomba)/pose" />
+		
+		<!-- params -->
+		<param name="MAP_FRAME_ID"       value="map" />
+		<param name="BASE_LINK_FRAME_ID" value="$(arg roomba)/base_link" />
+		<rosparam command="load" file="$(arg config_path)/params/single_mcl.yaml" />
+	</node>
+
+	<!-- rviz -->
+	<arg name="is_rviz" default="false" />
+    <group if="$(arg is_rviz)" >
+        <node pkg="rviz" type="rviz" name="$(arg roomba)_rviz" args="-d $(arg config_path)/rviz/amcl_pose_republisher/$(arg roomba).rviz" />
+    </group>
+
+</launch>

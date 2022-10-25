@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="file_path" default="$(env HOME)/bagfiles" />
+	<arg name="roomba"    default="roomba1" />
+
+    <!-- rosbag play -->
+    <node pkg="rosbag" type="play" name="$(arg roomba)_play" args="$(arg file_path)/$(arg roomba).bag" />
+
+</launch>
