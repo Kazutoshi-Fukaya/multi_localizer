@@ -1,6 +1,12 @@
 {
 	"python.autoComplete.extraPaths": [
 		"/home/amsl/catkin_ws/devel/lib/python3/dist-packages",
-		"/opt/ros/noetic/lib/python3/dist-packages"
+		"/opt/ros/noetic/lib/python3/dist-packages",
+		"/usr/lib/python3/dist-packages"
+	],
+	"python.analysis.extraPaths": [
+		"/home/amsl/catkin_ws/devel/lib/python3/dist-packages",
+		"/opt/ros/noetic/lib/python3/dist-packages",
+		"/usr/lib/python3/dist-packages"
 	]
 }
