@@ -35,10 +35,10 @@ class Graph:
 	
 		# ylabel
 		ax1.set_ylabel('APE [m]')
-		ax1.set_ylim(0.0,5.5)
-		ax1.set_yticks(np.arange(0.00,5.001,step=1.00))
+		ax1.set_ylim(0.0,5.1)
+		ax1.set_yticks(np.arange(0.00,5.1,step=1.00))
 		ax1.yaxis.set_major_formatter(mtick.FormatStrFormatter('%.3f'))
-		ax1.plot([d[0] for d in data],[d[7] for d in data],color="black",label="APE")
+		ax1.plot([d[0] for d in data],[d[7] for d in data],color="gray",label="APE")
 		mean = self.calc_mean(data)
 		std = self.calc_std(data)
 		# ax1.fill_between([d[0] for d in data],mean + std,mean - std,alpha=0.2,color="gray")

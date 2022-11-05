@@ -14,16 +14,20 @@
         <arg name="roomba" value="$(arg roomba)"/>
     </include>
 
-	<!-- single_mcl -->
+	<!-- amcl_pose_republisher -->
+	<arg name="publish_obj_msg" default="false" />
 	<node pkg="multi_localizer" type="amcl_pose_republisher" name="$(arg roomba)_amcl_pose_republisher" >
 		<!-- topic -->
 		<remap from="pose_in"  to="$(arg roomba)/amcl_pose" />
 		<remap from="odom_in"  to="$(arg roomba)/roomba/odometry" />
+		<remap from="obj_in"   to="$(arg roomba)/object_positions" />
 		<remap from="pose_out" to="$(arg roomba)/pose" />
+		<remap from="obj_out"  to="$(arg roomba)/objects_data" />
 		
 		<!-- params -->
 		<param name="MAP_FRAME_ID"       value="map" />
 		<param name="BASE_LINK_FRAME_ID" value="$(arg roomba)/base_link" />
+		<param name="PUBLISH_OBJ_MSG"    value="$(arg publish_obj_msg)" />
 		<rosparam command="load" file="$(arg config_path)/params/single_mcl.yaml" />
 	</node>
 

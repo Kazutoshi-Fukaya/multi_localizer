@@ -9,6 +9,7 @@
 #include <tf2/utils.h>
 
 // Custom msg
+#include "object_detector_msgs/ObjectPositions.h"
 #include "multi_robot_msgs/ObjectsData.h"
 
 namespace multi_localizer
@@ -22,6 +23,10 @@ public:
 private:
 	void odom_callback(const nav_msgs::OdometryConstPtr& msg);
 	void pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg);
+	void obj_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg);
+
+	void filter_ops_msg(object_detector_msgs::ObjectPositions input_ops,
+                        object_detector_msgs::ObjectPositions& output_ops);
 
 	// node handler
 	ros::NodeHandle nh_;
@@ -30,9 +35,11 @@ private:
 	// subscriber
 	ros::Subscriber pose_sub_;
 	ros::Subscriber odom_sub_;
+	ros::Subscriber obj_sub_;
 
 	// publisher
 	ros::Publisher pose_pub_;
+	ros::Publisher obj_pub_;
 
 	// tf
 	boost::shared_ptr<tf2_ros::Buffer> buffer_;
@@ -40,29 +47,41 @@ private:
 	boost::shared_ptr<tf2_ros::TransformBroadcaster> broadcaster_;
 
 	// buffer
+	ros::Time start_time_;
 	nav_msgs::Odometry odom_;
+	geometry_msgs::PoseStamped pose_;
 
 	// parameter
-	bool PUBLISH_OBJ_MSG_;
 	std::string MAP_FRAME_ID_;
 	std::string BASE_LINK_FRAME_ID_;
+	bool PUBLISH_OBJ_MSG_;
+	double PROBABILITY_TH_;
+	double ANGLE_OF_VIEW_;
+	double VISIBLE_LOWER_DISTANCE_;
+	double VISIBLE_UPPER_DISTANCE_;
 };
 }
 
 multi_localizer::AMCLPoseRepublisher::AMCLPoseRepublisher() :
-	private_nh_("~")
+	private_nh_("~"), start_time_(ros::Time::now())
 {
 	private_nh_.param("MAP_FRAME_ID",MAP_FRAME_ID_,{std::string("map")});
 	private_nh_.param("BASE_LINK_FRAME_ID",BASE_LINK_FRAME_ID_,{std::string("base_link")});
 
+	private_nh_.param("PROBABILITY_TH",PROBABILITY_TH_,{0.8});
+    private_nh_.param("ANGLE_OF_VIEW",ANGLE_OF_VIEW_,{86.0/180.0*M_PI});
+	private_nh_.param("VISIBLE_LOWER_DISTANCE",VISIBLE_LOWER_DISTANCE_,{0.2});
+    private_nh_.param("VISIBLE_UPPER_DISTANCE",VISIBLE_UPPER_DISTANCE_,{5.0});
+
 	pose_sub_ = nh_.subscribe("pose_in",1,&AMCLPoseRepublisher::pose_callback,this);
 	odom_sub_ = nh_.subscribe("odom_in",1,&AMCLPoseRepublisher::odom_callback,this);
+	obj_sub_ = nh_.subscribe("obj_in",1,&AMCLPoseRepublisher::obj_callback,this);
 
 	pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("pose_out",1);
 
 	private_nh_.param("PUBLISH_OBJ_MSG",PUBLISH_OBJ_MSG_,{false});
 	if(PUBLISH_OBJ_MSG_){
-		// TO DO 
+		obj_pub_ = nh_.advertise<multi_robot_msgs::ObjectsData>("obj_out",1);
 	}
 
 	buffer_.reset(new tf2_ros::Buffer);
@@ -74,14 +93,13 @@ void multi_localizer::AMCLPoseRepublisher::odom_callback(const nav_msgs::Odometr
 
 void multi_localizer::AMCLPoseRepublisher::pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
 {
-	geometry_msgs::PoseStamped pose;
-	pose.header = msg->header;
-	pose.pose = msg->pose.pose;
-	pose_pub_.publish(pose);
+	pose_.header = msg->header;
+	pose_.pose = msg->pose.pose;
+	pose_pub_.publish(pose_);
 
 	tf2::Quaternion q;
-    q.setRPY(0.0,0.0,tf2::getYaw(pose.pose.orientation));
-    tf2::Transform map_to_robot(q,tf2::Vector3(pose.pose.position.x,pose.pose.position.y,0.0));
+    q.setRPY(0.0,0.0,tf2::getYaw(pose_.pose.orientation));
+    tf2::Transform map_to_robot(q,tf2::Vector3(pose_.pose.position.x,pose_.pose.position.y,0.0));
     
     geometry_msgs::PoseStamped robot_to_map_pose;
     robot_to_map_pose.header.frame_id = BASE_LINK_FRAME_ID_;
@@ -105,6 +123,81 @@ void multi_localizer::AMCLPoseRepublisher::pose_callback(const geometry_msgs::Po
     tf2::convert(odom_to_map.inverse(),map_to_odom_transform.transform);
     broadcaster_->sendTransform(map_to_odom_transform);
 }
+
+void multi_localizer::AMCLPoseRepublisher::obj_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg)
+{
+	multi_robot_msgs::ObjectsData data;
+
+	// credibility
+	data.credibility = 1.0;
+	
+	// header
+	ros::Time now_time = ros::Time::now();
+	data.header.frame_id = MAP_FRAME_ID_;
+	data.header.stamp = now_time;
+	
+	// pose
+	data.pose.weight = 1.0;
+	data.pose.x = pose_.pose.position.x;
+	data.pose.y = pose_.pose.position.y;
+	data.pose.yaw = tf2::getYaw(pose_.pose.orientation);
+
+	object_detector_msgs::ObjectPositions filtered_ops;
+	filter_ops_msg(*msg,filtered_ops);
+	std::cout << msg->object_position.size() << ","
+	          << filtered_ops.object_position.size() << std::endl;
+	if(filtered_ops.object_position.empty()) return;
+
+	// objects
+	for(const auto &m : filtered_ops.object_position){
+		double dist = std::sqrt(m.x*m.x + m.z*m.z);
+		double angle = std::atan2(m.z,m.x) - 0.5*M_PI;
+
+		multi_robot_msgs::ObjectData object;
+		object.name = m.Class;
+		object.time = (now_time - start_time_).toSec();
+		object.x = pose_.pose.position.x + dist*std::cos(tf2::getYaw(pose_.pose.orientation) + angle);
+		object.y = pose_.pose.position.y + dist*std::sin(tf2::getYaw(pose_.pose.orientation) + angle);
+		data.objects.emplace_back(object);
+	}
+
+	obj_pub_.publish(data);
+}
+
+void multi_localizer::AMCLPoseRepublisher::filter_ops_msg(object_detector_msgs::ObjectPositions input_ops,
+                                                          object_detector_msgs::ObjectPositions& output_ops)
+{
+	output_ops.header = input_ops.header;
+    output_ops.object_position.clear();
+
+    auto is_visible_range = [this](object_detector_msgs::ObjectPosition op) -> bool
+    {
+        if(op.Class == "roomba") return false;
+        if(op.Class == "fire_extinguisher") return false;
+        if(op.probability < PROBABILITY_TH_) return false;
+
+        double r_vertex_x = std::cos(0.5*(M_PI - ANGLE_OF_VIEW_));
+        double r_vertex_y = std::sin(0.5*(M_PI - ANGLE_OF_VIEW_));
+        double l_vertex_x = std::cos(0.5*(M_PI + ANGLE_OF_VIEW_));
+        double l_vertex_y = std::sin(0.5*(M_PI + ANGLE_OF_VIEW_));
+
+        double dist = std::sqrt(op.x*op.x + op.z*op.z);
+        if(//VISIBLE_LOWER_DISTANCE_ < dist &&
+           dist < VISIBLE_UPPER_DISTANCE_){
+            double x = op.x;
+            double y = op.z;
+            if(r_vertex_x*y - x*r_vertex_y >= 0 && l_vertex_x*y - x*l_vertex_y <= 0) return true;
+        }
+        return false;
+    };
+
+    for(const auto &inp_op : input_ops.object_position){
+        if(is_visible_range(inp_op)) output_ops.object_position.emplace_back(inp_op);
+    }
+}
+
+
+
 
 void multi_localizer::AMCLPoseRepublisher::process() { ros::spin(); }
 
