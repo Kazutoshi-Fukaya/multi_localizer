@@ -36,7 +36,7 @@
 		<param name="USE_OCPS_MSG"           value="true" />
 		<param name="PUBLISH_DATABASE"       value="$(arg publish_database)" />
 		<param name="BASE_LINK_FRAME_ID"     value="$(arg roomba)/base_link" />
-		<param name="INIT_OBJECTS_FILE_NAME" value="$(arg config_path)/init_info/20220224.csv" />
+		<param name="INIT_OBJECTS_FILE_NAME" value="$(arg config_path)/init_info/20220630.csv" />
 		
 		<rosparam command="load" file="$(arg config_path)/params/robot_name_list.yaml" />
 		<rosparam command="load" file="$(arg config_path)/params/object_params.yaml" />

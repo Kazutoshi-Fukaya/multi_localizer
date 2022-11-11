@@ -126,42 +126,43 @@ void multi_localizer::AMCLPoseRepublisher::pose_callback(const geometry_msgs::Po
 
 void multi_localizer::AMCLPoseRepublisher::obj_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg)
 {
-	multi_robot_msgs::ObjectsData data;
+	if(PUBLISH_OBJ_MSG_){
+		multi_robot_msgs::ObjectsData data;
 
-	// credibility
-	data.credibility = 1.0;
+		// credibility
+		data.credibility = 1.0;
 	
-	// header
-	ros::Time now_time = ros::Time::now();
-	data.header.frame_id = MAP_FRAME_ID_;
-	data.header.stamp = now_time;
+		// header
+		ros::Time now_time = ros::Time::now();
+		data.header.frame_id = MAP_FRAME_ID_;
+		data.header.stamp = now_time;
 	
-	// pose
-	data.pose.weight = 1.0;
-	data.pose.x = pose_.pose.position.x;
-	data.pose.y = pose_.pose.position.y;
-	data.pose.yaw = tf2::getYaw(pose_.pose.orientation);
+		// pose
+		data.pose.weight = 1.0;
+		data.pose.x = pose_.pose.position.x;
+		data.pose.y = pose_.pose.position.y;
+		data.pose.yaw = tf2::getYaw(pose_.pose.orientation);
 
-	object_detector_msgs::ObjectPositions filtered_ops;
-	filter_ops_msg(*msg,filtered_ops);
-	std::cout << msg->object_position.size() << ","
-	          << filtered_ops.object_position.size() << std::endl;
-	if(filtered_ops.object_position.empty()) return;
+		object_detector_msgs::ObjectPositions filtered_ops;
+		filter_ops_msg(*msg,filtered_ops);
+		std::cout << msg->object_position.size() << ","
+				<< filtered_ops.object_position.size() << std::endl;
+		if(filtered_ops.object_position.empty()) return;
 
-	// objects
-	for(const auto &m : filtered_ops.object_position){
-		double dist = std::sqrt(m.x*m.x + m.z*m.z);
-		double angle = std::atan2(m.z,m.x) - 0.5*M_PI;
+		// objects
+		for(const auto &m : filtered_ops.object_position){
+			double dist = std::sqrt(m.x*m.x + m.z*m.z);
+			double angle = std::atan2(m.z,m.x) - 0.5*M_PI;
 
-		multi_robot_msgs::ObjectData object;
-		object.name = m.Class;
-		object.time = (now_time - start_time_).toSec();
-		object.x = pose_.pose.position.x + dist*std::cos(tf2::getYaw(pose_.pose.orientation) + angle);
-		object.y = pose_.pose.position.y + dist*std::sin(tf2::getYaw(pose_.pose.orientation) + angle);
-		data.objects.emplace_back(object);
+			multi_robot_msgs::ObjectData object;
+			object.name = m.Class;
+			object.time = (now_time - start_time_).toSec();
+			object.x = pose_.pose.position.x + dist*std::cos(tf2::getYaw(pose_.pose.orientation) + angle);
+			object.y = pose_.pose.position.y + dist*std::sin(tf2::getYaw(pose_.pose.orientation) + angle);
+			data.objects.emplace_back(object);
+		}
+		obj_pub_.publish(data);
 	}
-
-	obj_pub_.publish(data);
 }
 
 void multi_localizer::AMCLPoseRepublisher::filter_ops_msg(object_detector_msgs::ObjectPositions input_ops,
@@ -195,9 +196,6 @@ void multi_localizer::AMCLPoseRepublisher::filter_ops_msg(object_detector_msgs::
         if(is_visible_range(inp_op)) output_ops.object_position.emplace_back(inp_op);
     }
 }
-
-
-
 
 void multi_localizer::AMCLPoseRepublisher::process() { ros::spin(); }
 

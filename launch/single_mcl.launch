@@ -6,7 +6,7 @@
 	<!--map_server -->
 	<arg name="is_map" default="true" />
 	<group if="$(arg is_map)" >
-		<node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/map.yaml" />
+		<node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/spare/map.yaml" />
 	</group>
 
 	<!-- tf -->

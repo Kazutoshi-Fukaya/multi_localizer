@@ -4,9 +4,12 @@ HZ: 10
 PARTICLES_NUM: 1000
 
 # Initial Position
-INIT_X: 7.4
-INIT_Y: 1.4
-INIT_YAW: 1.5708
+# INIT_X: 7.4
+# INIT_Y: 1.4
+# INIT_YAW: 1.5708
+INIT_X: 0.0
+INIT_Y: 16.0
+INIT_YAW: -3.14
 
 # Initial Variance
 INIT_X_VAR: 0.3

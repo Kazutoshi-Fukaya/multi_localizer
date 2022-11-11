@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="file_path" default="$(env HOME)/bagfiles" />
+	<!-- <arg name="roomba"    default="roomba1" /> -->
+
+    <!-- rosbag play -->
+    <node pkg="rosbag" type="play" name="roomba5_play" args="$(arg file_path)/roomba5.bag" />
+    <node pkg="rosbag" type="play" name="roomba6_play" args="$(arg file_path)/roomba6.bag" />
+
+</launch>
