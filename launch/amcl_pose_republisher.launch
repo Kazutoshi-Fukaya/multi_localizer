@@ -15,7 +15,7 @@
     </include>
 
 	<!-- amcl_pose_republisher -->
-	<arg name="publish_obj_msg" default="false" />
+	<arg name="publish_obj_msg" default="true" />
 	<node pkg="multi_localizer" type="amcl_pose_republisher" name="$(arg roomba)_amcl_pose_republisher" >
 		<!-- remap -->
 		<remap from="pose_in"  to="$(arg roomba)/amcl_pose" />
@@ -28,7 +28,6 @@
 		<param name="MAP_FRAME_ID"       value="map" />
 		<param name="BASE_LINK_FRAME_ID" value="$(arg roomba)/base_link" />
 		<param name="PUBLISH_OBJ_MSG"    value="$(arg publish_obj_msg)" />
-		<rosparam command="load" file="$(arg config_path)/params/single_mcl.yaml" />
 	</node>
 
 	<!-- rviz -->

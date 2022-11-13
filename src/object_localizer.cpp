@@ -71,7 +71,7 @@ void multi_localizer::ObjectLocalizer::ocps_callback(const object_color_detector
 
 void multi_localizer::ObjectLocalizer::observation_update()
 {
-	// if(ops_.object_position.empty()) return;
+	if(!is_observation()) return;
     for(auto &p : particles_) p.weight_ = get_weight(p.pose_);
     normalize_particles_weight();
     calc_weight_params();
@@ -173,6 +173,12 @@ void multi_localizer::ObjectLocalizer::filter_ops_msg(object_detector_msgs::Obje
     {
         if(robot_name_list_->is_included(op.Class)) return false;
 		if(op.Class == "fire_extinguisher") return false;
+
+        // atode kesu
+        // if(op.Class == "chair") return false;
+        // if(op.Class == "table") return false;
+
+
         if(op.probability <= PROBABILITY_TH_) return false;
 
         double r_vertex_x = std::cos(0.5*(M_PI - ANGLE_OF_VIEW_));
@@ -216,6 +222,23 @@ void multi_localizer::ObjectLocalizer::publish_objects_msg()
         data.objects.emplace_back(od);
     }
 	ops_.object_position.clear();
+}
+
+bool multi_localizer::ObjectLocalizer::is_observation()
+{
+    if(USE_OPS_MSG_ && USE_OCPS_MSG_){
+        if(ocps_.object_color_position.empty() && ocps_.object_color_position.empty()) return false;
+        else return true;
+    }
+    else if(USE_OCPS_MSG_){
+        if(ocps_.object_color_position.empty()) return false;
+        else return true;
+    }
+    else if(USE_OPS_MSG_){
+        if(ops_.object_position.empty()) return false;
+        else return true;
+    }
+    else return false;
 }
 
 void multi_localizer::ObjectLocalizer::process()

@@ -7,7 +7,9 @@
   <license>TODO</license>
 
   <buildtool_depend>catkin</buildtool_depend>
+  <depend>cv_bridge</depend>
   <depend>geometry_msgs</depend>
+  <depend>image_transport</depend>
   <depend>multi_robot_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>object_color_detector_msgs</depend>

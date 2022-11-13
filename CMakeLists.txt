@@ -4,7 +4,9 @@ project(multi_localizer)
 add_compile_options(-o2 -g -Wall)
 
 find_package(catkin REQUIRED COMPONENTS
+    cv_bridge
     geometry_msgs
+    image_transport
     multi_robot_msgs
     nav_msgs
     object_color_detector_msgs
@@ -18,13 +20,27 @@ find_package(catkin REQUIRED COMPONENTS
     visualization_msgs
 )
 
+# OpenCV
+find_package(OpenCV 4.0 QUIET)
+if(NOT OpenCV_FOUND)
+    find_package(OpenCV 3.0 QUIET)
+    if(NOT OpenCV_FOUND)
+        find_package(OpenCV 3.4.3 QUIET)
+        if(NOT OpenCV_FOUND)
+            message(FATAL_ERROR "OpenCV > 2.4.3 not found.")
+        endif()
+    endif()
+endif()
+
 catkin_package(
     INCLUDE_DIRS include
+    ${OpenCV_INCLUDE_DIRS}
 )
 
 include_directories(
     include
     ${catkin_INCLUDE_DIRS}
+    ${OpenCV_INCLUDE_DIRS}
 )
 
 # tf_broadcaster
@@ -54,3 +70,10 @@ target_link_libraries(object_localizer ${catkin_LIBRARIES})
 # pose_recorder
 add_executable(pose_recorder src/pose_recorder.cpp)
 target_link_libraries(pose_recorder ${catkin_LIBRARIES})
+
+# image_connector
+add_executable(image_connector src/image_connector.cpp)
+target_link_libraries(image_connector 
+    ${catkin_LIBRARIES}
+    ${OpenCV_LIBRARIES}
+)

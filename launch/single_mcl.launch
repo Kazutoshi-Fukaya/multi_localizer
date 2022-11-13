@@ -31,7 +31,8 @@
 		<!-- params -->
 		<param name="IS_TF" value="true" />
 		<param name="BASE_LINK_FRAME_ID" value="$(arg roomba)/base_link" />
-		<rosparam command="load" file="$(arg config_path)/params/single_mcl.yaml" />
+		<!-- <rosparam command="load" file="$(arg config_path)/params/single_mcl/20220224/$(arg roomba).yaml" /> -->
+		<rosparam command="load" file="$(arg config_path)/params/single_mcl/20220630/$(arg roomba).yaml" />
 	</node>
 
 	<!-- rviz -->

@@ -32,6 +32,7 @@ private:
 	void observation_update();
 	void publish_tf();
 	bool is_start();
+	bool is_observation();
 	double get_weight(geometry_msgs::PoseStamped& pose);
 
 	void filter_ops_msg(object_detector_msgs::ObjectPositions input_ops,
