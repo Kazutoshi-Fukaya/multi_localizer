@@ -9,55 +9,30 @@
 		<include file="$(find multi_localizer)/launch/utils/20220224.launch" />
 	</group>
 
-	<!-- amcl_pose_republisher -->
-	<arg name="leading_roomba" default="roomba1" />
-	<arg name="republish_pose" default="true" />
-	<group if="$(arg republish_pose)" >
-		<include file="$(find multi_localizer)/launch/amcl_pose_republisher.launch" >
-			<arg name="roomba"          value="$(arg leading_roomba)" />
-			<arg name="is_map"          value="false" />
-			<arg name="publish_obj_msg" value="true" />
-			<arg name="is_rviz"         value="false" />
-		</include>
-	</group>
-
 	<!--map_server -->
 	<arg name="is_map" default="true" />
 	<group if="$(arg is_map)" >
 		<node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/spare/map.yaml" />
 	</group>
 
-	<!-- tf -->
-	<include file="$(find multi_localizer)/launch/tf_broadcaster.launch" >
-        <arg name="roomba" value="$(arg roomba)"/>
-    </include>
+	<!-- amcl_pose_republisher (leading roomba) -->
+	<arg name="leading_roomba" default="roomba1" />
+	<include file="$(find multi_localizer)/launch/amcl_pose_republisher.launch" >
+		<arg name="roomba"          value="$(arg leading_roomba)" />
+		<arg name="is_map"          value="false" />
+		<arg name="publish_obj_msg" value="true" />
+		<arg name="is_rviz"         value="false" />
+	</include>
 
-	<!-- object_localizer -->
-	<arg name="publish_database" default="true" />
-	<node pkg="multi_localizer" type="object_localizer" name="$(arg roomba)_object_localizer" >
-		<!-- remap -->
-		<remap from="odom_in"   to="$(arg roomba)/roomba/odometry" />
-		<remap from="ops_in"    to="$(arg roomba)/object_positions" />
-		<remap from="ocps_in"   to="$(arg roomba)/object_color_positions" />
-		<remap from="pose_out"  to="$(arg roomba)/pose" />
-		<remap from="poses_out" to="$(arg roomba)/poses" />
-		<remap from="objects"   to="$(arg roomba)/objects" />
-
-		<!-- params -->
-		<param name="IS_TF"                  value="true" />
-		<param name="USE_OPS_MSG"            value="true" />
-		<param name="USE_OCPS_MSG"           value="true" />
-		<param name="PUBLISH_DATABASE"       value="$(arg publish_database)" />
-		<param name="BASE_LINK_FRAME_ID"     value="$(arg roomba)/base_link" />
-		<param name="INIT_OBJECTS_FILE_NAME" value="$(arg config_path)/init_info/20220224.csv" />
-		<!-- <param name="INIT_OBJECTS_FILE_NAME" value="$(arg config_path)/init_info/20220630.csv" /> -->
-		
-		<rosparam command="load" file="$(arg config_path)/params/robot_name_list.yaml" />
-		<rosparam command="load" file="$(arg config_path)/params/object_params.yaml" />
-		<rosparam command="load" file="$(arg config_path)/params/robot_element.yaml" />
-		<rosparam command="load" file="$(arg config_path)/params/object_localizer/20220224/$(arg roomba).yaml" />
-		<!-- <rosparam command="load" file="$(arg config_path)/params/object_localizer/20220630/$(arg roomba).yaml" /> -->
-	</node>
+	<!-- object_localizer (follower roomba) -->
+	<include file="$(find multi_localizer)/launch/object_localizer/object_localizer.launch" >
+		<arg name="roomba"           value="$(arg roomba)" />
+		<arg name="use_ops_msg"      value="true" />
+		<arg name="use_ocps_msg"     value="true" />
+		<arg name="publish_database" value="true" />
+		<arg name="publish_obj_data" value="true" />
+		<arg name="is_record"        value="true" />
+	</include>
 
 	<!-- rviz -->
 	<arg name="is_rviz" default="true" />

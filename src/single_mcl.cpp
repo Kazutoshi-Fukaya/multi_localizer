@@ -1,7 +1,8 @@
 #include "single_mcl/single_mcl.h"
 
 multi_localizer::SingleMCL::SingleMCL() :
-	has_received_map_(false)
+	start_time_(ros::Time::now()),
+    has_received_map_(false)
 {
 	private_nh_.param("HZ",HZ_,{10});
     private_nh_.param("PARTICLES_NUM",PARTICLES_NUM,{2000});
@@ -38,7 +39,25 @@ multi_localizer::SingleMCL::SingleMCL() :
     map_sub_ = nh_.subscribe("map_in",1,&SingleMCL::map_callback,this);
     lsr_sub_ = nh_.subscribe("lsr_in",1,&SingleMCL::lsr_callback,this);
 
+    private_nh_.param("IS_RECORD",IS_RECORD_,{false});
+    private_nh_.param("PUBLISH_OBJ_DATA",PUBLISH_OBJ_DATA_,{false});
+    if(IS_RECORD_ || PUBLISH_OBJ_DATA_){
+        obj_sub_ = nh_.subscribe("obj_in",1,&SingleMCL::obj_callback,this);
+        if(IS_RECORD_){
+            recorder_ = new Recorder(private_nh_);
+            pose_sub_ = nh_.subscribe("pose_in",1,&SingleMCL::pose_callback,this);
+        }
+        if(PUBLISH_OBJ_DATA_){
+            obj_pub_ = nh_.advertise<multi_robot_msgs::ObjectsData>("obj_out",1);
+        }
+    }
+
 	init();
+}
+
+multi_localizer::SingleMCL::~SingleMCL()
+{
+    if(IS_RECORD_) recorder_->save_csv();
 }
 
 void multi_localizer::SingleMCL::map_callback(const nav_msgs::OccupancyGridConstPtr& msg)
@@ -51,6 +70,49 @@ void multi_localizer::SingleMCL::map_callback(const nav_msgs::OccupancyGridConst
 void multi_localizer::SingleMCL::lsr_callback(const sensor_msgs::LaserScanConstPtr& msg)
 {
 	lsr_ = *msg;
+}
+
+void multi_localizer::SingleMCL::pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
+{
+    ref_pose_.header = msg->header;
+    ref_pose_.pose = msg->pose.pose;
+}
+
+void multi_localizer::SingleMCL::obj_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg)
+{
+    if(msg->object_position.empty()) return;
+
+    ros::Time now_time = ros::Time::now();
+    double time = (now_time - start_time_).toSec();
+
+    multi_robot_msgs::ObjectsData objects_data;
+    objects_data.credibility = 1.0; // temporary
+    objects_data.header.stamp = now_time;
+    objects_data.header.frame_id = MAP_FRAME_ID_;
+    objects_data.pose.name = "";    // temporary
+    objects_data.pose.weight = 1.0; // temporary
+    objects_data.pose.x = estimated_pose_.pose.position.x;
+    objects_data.pose.y = estimated_pose_.pose.position.y;
+    objects_data.pose.yaw = tf2::getYaw(estimated_pose_.pose.orientation);
+    if(IS_RECORD_ || PUBLISH_OBJ_DATA_){
+        for(const auto &op : msg->object_position){
+            // atode naosu
+            if(op.Class != "roomba"){
+                if(IS_RECORD_) recorder_->add_observation(time,op.Class);
+                if(PUBLISH_OBJ_DATA_){
+                    double dist = std::sqrt(op.x*op.x + op.z*op.z);
+                    double angle = std::atan2(op.z,op.x) - 0.5*M_PI;
+                    multi_robot_msgs::ObjectData data;
+                    data.name = op.Class;
+                    data.time = time;
+                    data.x = objects_data.pose.x + dist*std::cos(angle + objects_data.pose.yaw);
+                    data.y = objects_data.pose.y + dist*std::sin(angle + objects_data.pose.yaw);
+                    objects_data.objects.emplace_back(data);
+                }
+            }
+        }
+    }
+    if(PUBLISH_OBJ_DATA_) obj_pub_.publish(objects_data);
 }
 
 void multi_localizer::SingleMCL::observation_update()
@@ -87,6 +149,18 @@ void multi_localizer::SingleMCL::publish_tf()
     map_to_odom_transform.child_frame_id = current_odom_.header.frame_id;
     tf2::convert(odom_to_map.inverse(),map_to_odom_transform.transform);
     broadcaster_->sendTransform(map_to_odom_transform);
+}
+
+void multi_localizer::SingleMCL::record_pose()
+{
+    double time = (ros::Time::now() - start_time_).toSec();   
+    recorder_->add_trajectory(time,
+                              estimated_pose_.pose.position.x,
+                              estimated_pose_.pose.position.y,
+                              tf2::getYaw(estimated_pose_.pose.orientation),
+                              ref_pose_.pose.position.x,
+                              ref_pose_.pose.position.y,
+                              tf2::getYaw(ref_pose_.pose.orientation));
 }
 
 bool multi_localizer::SingleMCL::is_start()
@@ -224,6 +298,7 @@ void multi_localizer::SingleMCL::process()
             publish_particle_poses();
             publish_estimated_pose();
             publish_tf();
+            if(IS_RECORD_) record_pose();
         }
         has_received_odom_ = false;
         previous_odom_ = current_odom_;

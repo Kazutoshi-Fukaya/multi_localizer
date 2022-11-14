@@ -1,7 +1,16 @@
 <?xml version="1.0"?>
 <launch>
     <arg name="config_path" default="$(find multi_localizer)/config" />
-	<arg name="roomba"    default="roomba1" />
+	<arg name="roomba"      default="roomba1" />
+	<!-- <arg name="date"        default="20220224" /> -->
+	<arg name="date"        default="20220630" />
+
+	<!-- bag -->
+	<arg name="is_bag" default="true" />
+	<group if="$(arg is_bag)" >
+		<arg name="file_path" default="$(env HOME)/bagfiles/experimental_file_$(arg date)" />
+		<node pkg="rosbag" type="play" name="$(arg roomba)_play" args=" $(arg file_path)/$(arg roomba).bag" />
+	</group>
 
 	<!--map_server -->
 	<arg name="is_map" default="true" />
@@ -20,19 +29,28 @@
     </include>
 
 	<!-- single_mcl -->
-	<node pkg="multi_localizer" type="single_mcl" name="$(arg roomba)_single_mcl" >
-		<!-- topic -->
+	<arg name="is_record"        default="false" />
+	<arg name="publish_obj_data" default="false" />
+	<node pkg="multi_localizer" type="single_mcl" name="$(arg roomba)_single_mcl"  >
+		<!-- remap -->
 		<remap from="odom_in"   to="$(arg roomba)/roomba/odometry" />
 		<remap from="map_in"    to="map" />
 		<remap from="lsr_in"    to="$(arg roomba)/corrected_scan" />
 		<remap from="pose_out"  to="$(arg roomba)/pose" />
 		<remap from="poses_out" to="$(arg roomba)/poses" />
-		
+		<remap from="obj_in"    to="$(arg roomba)/object_positions" />
+		<remap from="pose_in"   to="$(arg roomba)/amcl_pose" />
+		<remap from="obj_out"   to="$(arg roomba)/objects_data" />
+
 		<!-- params -->
-		<param name="IS_TF" value="true" />
+		<param name="IS_RECORD"          value="$(arg is_record)" />
+		<param name="PUBLISH_OBJ_DATA"   value="$(arg publish_obj_data)" />
+		<param name="IS_TF"              value="true" />
 		<param name="BASE_LINK_FRAME_ID" value="$(arg roomba)/base_link" />
-		<!-- <rosparam command="load" file="$(arg config_path)/params/single_mcl/20220224/$(arg roomba).yaml" /> -->
-		<rosparam command="load" file="$(arg config_path)/params/single_mcl/20220630/$(arg roomba).yaml" />
+		<param name="RECORD_FILE_PATH"   value="$(find multi_localizer)/record/$(arg roomba)_" />
+
+		<!-- rosparam -->
+		<rosparam command="load" file="$(arg config_path)/params/single_mcl/$(arg date)/$(arg roomba).yaml" />
 	</node>
 
 	<!-- rviz -->
