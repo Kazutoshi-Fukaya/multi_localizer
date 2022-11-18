@@ -67,10 +67,6 @@ add_executable(object_localizer
 )
 target_link_libraries(object_localizer ${catkin_LIBRARIES})
 
-# pose_recorder
-add_executable(pose_recorder src/pose_recorder.cpp)
-target_link_libraries(pose_recorder ${catkin_LIBRARIES})
-
 # image_connector
 add_executable(image_connector src/image_connector.cpp)
 target_link_libraries(image_connector 

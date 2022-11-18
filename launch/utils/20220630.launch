@@ -9,7 +9,6 @@
 		<node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/spare/map.yaml" />
 	</group>
 
-
     <!-- roomba1 -->
     <arg name="is_roomba1" default="true" />
     <group if="$(arg is_roomba1)" >

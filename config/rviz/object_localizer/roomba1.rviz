@@ -63,7 +63,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /objects
+      Marker Topic: /roomba1/objects
       Name: MarkerArray
       Namespaces:
         bench: true
@@ -73,6 +73,7 @@ Visualization Manager:
         fire_extinguisher: true
         fire_hydrant: true
         kitchenette_icon: true
+        table: true
         toilet_icon: true
         trash_can: true
       Queue Size: 100

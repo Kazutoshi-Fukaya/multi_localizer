@@ -1,17 +1,19 @@
 <?xml version="1.0"?>
 <launch>
     <arg name="config_path" default="$(find multi_localizer)/config" />
-	<arg name="roomba"    default="roomba1" />
+	<arg name="roomba"      default="roomba1" />
 	
 	<!-- tf -->
 	<node pkg="multi_localizer" type="tf_broadcaster" name="$(arg roomba)_tf_broadcaster" >
-		<!-- topic -->
+		<!-- remap -->
 		<remap from="odom_in" to="$(arg roomba)/roomba/odometry" />
 
-		<!-- parameters -->
+		<!-- param -->
 		<param name="BASE_LINK_FRAME_ID" value="$(arg roomba)/base_link" />
 		<param name="LASER_FRAME_ID"     value="$(arg roomba)/laser" />
 		<param name="CAMERA_FRAME_ID"    value="$(arg roomba)/camera" />
+		
+		<!-- rosparam -->
 		<rosparam command="load" file="$(arg config_path)/params/tf_broadcaster.yaml" />
 	</node>
 

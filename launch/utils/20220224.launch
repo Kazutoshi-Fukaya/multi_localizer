@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="file_path" default="$(env HOME)/bagfiles/experimental_file_20220224" />
+    <arg name="file_path"   default="$(env HOME)/bagfiles/experimental_file_20220224" />
     <arg name="config_path" default="$(find multi_localizer)/config" />
 
     <!--map_server -->

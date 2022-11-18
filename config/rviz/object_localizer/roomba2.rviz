@@ -75,6 +75,23 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Alpha: 1
+      Arrow Length: 0.30000001192092896
+      Axes Length: 0.30000001192092896
+      Axes Radius: 0.009999999776482582
+      Class: rviz/PoseArray
+      Color: 0; 128; 0
+      Enabled: false
+      Head Length: 0.07000000029802322
+      Head Radius: 0.029999999329447746
+      Name: PoseArray
+      Queue Size: 10
+      Shaft Length: 0.23000000417232513
+      Shaft Radius: 0.009999999776482582
+      Shape: Arrow (Flat)
+      Topic: /roomba1/poses
+      Unreliable: false
+      Value: false
+    - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.10000000149011612
       Class: rviz/Pose
@@ -96,7 +113,7 @@ Visualization Manager:
       Axes Radius: 0.009999999776482582
       Class: rviz/PoseArray
       Color: 255; 255; 0
-      Enabled: true
+      Enabled: false
       Head Length: 0.07000000029802322
       Head Radius: 0.029999999329447746
       Name: PoseArray
@@ -106,7 +123,7 @@ Visualization Manager:
       Shape: Arrow (Flat)
       Topic: /roomba2/poses
       Unreliable: false
-      Value: true
+      Value: false
     - Class: rviz/TF
       Enabled: false
       Frame Timeout: 15

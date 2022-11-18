@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 <launch>
     <arg name="config_path" default="$(find multi_localizer)/config" />
-	<arg name="is_record"   default="false" />
+	<arg name="is_record"        default="false" />
+	<arg name="publish_obj_data" default="false" />
 
 	<!-- roomba -->
 	<arg name="is_roomba2"  default="true" />
@@ -31,95 +32,77 @@
 		<node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/spare/map.yaml" />
 	</group>
 
-	<!-- amcl_pose_republisher (roomba1) -->
-	<arg name="republish_pose" default="true" />
-	<group if="$(arg republish_pose)" >
-		<include file="$(find multi_localizer)/launch/amcl_pose_republisher.launch" >
-			<arg name="roomba"          value="roomba1" />
-			<arg name="is_map"          value="false" />
-			<arg name="publish_obj_msg" value="true" />
-			<arg name="is_rviz"         value="false" />
-		</include>
-	</group>
+	<!-- single_mcl (roomba1) -->
+	<include file="$(find multi_localizer)/launch/single_mcl/single_mcl.launch" >
+		<!-- default -->
+		<arg name="date"    value="20220224" />
+		<arg name="is_bag"  value="false" />
+		<arg name="is_map"  value="false" />
+		<arg name="is_rviz" value="false" />
+		
+		<arg name="roomba"           value="roomba1" />
+		<arg name="is_record"        value="$(arg is_record)" />
+		<arg name="publish_obj_data" value="$(arg publish_obj_data)" />
+	</include>
 
 	<!-- object_localizer (roomba2) -->
 	<group if="$(arg is_roomba2)" >
 		<include file="$(find multi_localizer)/launch/object_localizer/object_localizer.launch" >
 			<arg name="roomba"           value="roomba2" />
-			<arg name="publish_database" value="true" />
 			<arg name="use_ops_msg"      value="true" />
 			<arg name="use_ocps_msg"     value="true" />
+			<arg name="publish_database" value="true" />
+			<arg name="is_record"        value="$(arg is_record)" />
+			<arg name="publish_obj_data" value="$(arg publish_obj_data)" />
 		</include>
-
-		<group if="$(arg is_record)" >
-			<include file="$(find multi_localizer)/launch/utils/pose_recorder.launch" >
-				<arg name="roomba" value="roomba2" />
-			</include>
-		</group>
 	</group>
 
 	<!-- object_localizer (roomba3) -->
 	<group if="$(arg is_roomba3)" >
 		<include file="$(find multi_localizer)/launch/object_localizer/object_localizer.launch" >
 			<arg name="roomba"           value="roomba3" />
-			<arg name="publish_database" value="true" />
 			<arg name="use_ops_msg"      value="true" />
 			<arg name="use_ocps_msg"     value="true" />
+			<arg name="publish_database" value="true" />
+			<arg name="is_record"        value="$(arg is_record)" />
+			<arg name="publish_obj_data" value="$(arg publish_obj_data)" />
 		</include>
-
-		<group if="$(arg is_record)" >
-			<include file="$(find multi_localizer)/launch/utils/pose_recorder.launch" >
-				<arg name="roomba" value="roomba3" />
-			</include>
-		</group>
 	</group>
 
 	<!-- object_localizer (roomba4) -->
 	<group if="$(arg is_roomba4)" >
 		<include file="$(find multi_localizer)/launch/object_localizer/object_localizer.launch" >
 			<arg name="roomba"           value="roomba4" />
-			<arg name="publish_database" value="true" />
 			<arg name="use_ops_msg"      value="true" />
 			<arg name="use_ocps_msg"     value="true" />
+			<arg name="publish_database" value="true" />
+			<arg name="is_record"        value="$(arg is_record)" />
+			<arg name="publish_obj_data" value="$(arg publish_obj_data)" />
 		</include>
-
-		<group if="$(arg is_record)" >
-			<include file="$(find multi_localizer)/launch/utils/pose_recorder.launch" >
-				<arg name="roomba" value="roomba4" />
-			</include>
-		</group>
 	</group>
 
 	<!-- object_localizer (roomba5) -->
 	<group if="$(arg is_roomba5)" >
 		<include file="$(find multi_localizer)/launch/object_localizer/object_localizer.launch" >
 			<arg name="roomba"           value="roomba5" />
-			<arg name="publish_database" value="true" />
 			<arg name="use_ops_msg"      value="true" />
 			<arg name="use_ocps_msg"     value="true" />
+			<arg name="publish_database" value="true" />
+			<arg name="is_record"        value="$(arg is_record)" />
+			<arg name="publish_obj_data" value="$(arg publish_obj_data)" />
 		</include>
-
-		<group if="$(arg is_record)" >
-			<include file="$(find multi_localizer)/launch/utils/pose_recorder.launch" >
-				<arg name="roomba" value="roomba5" />
-			</include>
-		</group>
 	</group>
 
 	<!-- object_localizer (roomba6) -->
 	<group if="$(arg is_roomba6)" >
 		<include file="$(find multi_localizer)/launch/object_localizer/object_localizer.launch" >
 			<arg name="roomba"           value="roomba6" />
-			<arg name="publish_database" value="true" />
 			<arg name="use_ops_msg"      value="true" />
 			<arg name="use_ocps_msg"     value="true" />
+			<arg name="publish_database" value="true" />
+			<arg name="is_record"        value="$(arg is_record)" />
+			<arg name="publish_obj_data" value="$(arg publish_obj_data)" />
 		</include>
-
-		<group if="$(arg is_record)" >
-			<include file="$(find multi_localizer)/launch/utils/pose_recorder.launch" >
-				<arg name="roomba" value="roomba6" />
-			</include>
-		</group>
 	</group>
 
 	<!-- rviz -->

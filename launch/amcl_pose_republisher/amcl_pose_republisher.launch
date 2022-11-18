@@ -3,6 +3,17 @@
     <arg name="config_path" default="$(find multi_localizer)/config" />
 	<arg name="roomba"    default="roomba1" />
 
+	<!-- rosbag -->
+	<arg name="date"      default="20220224" />
+	<!-- <arg name="date"      default="20220630" /> -->
+	<arg name="is_bag" default="false" />
+	<group if="$(arg is_bag)" >
+		<include file="$(find multi_localizer)/launch/utils/bag_player.launch" >
+			<arg name="roomba" value="$(arg roomba)" />
+			<arg name="date"   value="$(arg date)" />
+		</include>
+	</group>
+
 	<!--map_server -->
 	<arg name="is_map" default="false" />
 	<group if="$(arg is_map)" >
