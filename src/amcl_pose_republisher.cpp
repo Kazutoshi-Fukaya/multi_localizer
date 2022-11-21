@@ -145,7 +145,7 @@ void multi_localizer::AMCLPoseRepublisher::obj_callback(const object_detector_ms
         data.pose.x = pose_.pose.position.x;
         data.pose.y = pose_.pose.position.y;
         data.pose.yaw = tf2::getYaw(pose_.pose.orientation);
-        
+
         object_detector_msgs::ObjectPositions filtered_ops;
         filter_ops_msg(*msg,filtered_ops);
         std::cout << msg->object_position.size() << ","
