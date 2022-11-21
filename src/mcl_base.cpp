@@ -1,14 +1,14 @@
 #include "mcl_base/mcl_base.h"
 
 multi_localizer::MCLBase::MCLBase() :
-	private_nh_("~"), engine_(seed_()),
-	has_received_odom_(false), is_update_(false),
-	x_var_(0.0), y_var_(0.0), yaw_var_(0.0),
-	weight_average_(0.0), weight_slow_(0.0), weight_fast_(0.0),
-	distance_sum_(0.0), angle_sum_(0.0)
+    private_nh_("~"), engine_(seed_()),
+    has_received_odom_(false), is_update_(false),
+    x_var_(0.0), y_var_(0.0), yaw_var_(0.0),
+    weight_average_(0.0), weight_slow_(0.0), weight_fast_(0.0),
+    distance_sum_(0.0), angle_sum_(0.0)
 {
-	private_nh_.param("MAP_FRAME_ID",MAP_FRAME_ID_,{std::string("map")});
-	private_nh_.param("BASE_LINK_FRAME_ID",BASE_LINK_FRAME_ID_,{std::string("base_link")});
+    private_nh_.param("MAP_FRAME_ID",MAP_FRAME_ID_,{std::string("map")});
+    private_nh_.param("BASE_LINK_FRAME_ID",BASE_LINK_FRAME_ID_,{std::string("base_link")});
 
     odom_sub_ = nh_.subscribe("odom_in",1,&MCLBase::odom_callback,this);
 
@@ -49,7 +49,7 @@ void multi_localizer::MCLBase::odom_callback(const nav_msgs::OdometryConstPtr& m
     else{
         current_odom_.pose = msg->pose.pose;
     }
-	current_odom_.header = msg->header;
+    current_odom_.header = msg->header;
     has_received_odom_ = true;
 }
 
@@ -63,7 +63,7 @@ double multi_localizer::MCLBase::get_weight(geometry_msgs::PoseStamped& pose) { 
 
 void multi_localizer::MCLBase::init()
 {
-	set_particles(INIT_X_,INIT_Y_,INIT_YAW_,INIT_X_VAR_,INIT_Y_VAR_,INIT_YAW_VAR_);
+    set_particles(INIT_X_,INIT_Y_,INIT_YAW_,INIT_X_VAR_,INIT_Y_VAR_,INIT_YAW_VAR_);
     init_pose(previous_odom_,0.0,0.0,0.0);
     init_pose(current_odom_,0.0,0.0,0.0);
     init_pose(estimated_pose_,INIT_X_,INIT_Y_,INIT_YAW_);
@@ -264,13 +264,13 @@ bool multi_localizer::MCLBase::is_dense()
 
 bool multi_localizer::MCLBase::is_spread()
 {
-	if(x_var_ > UPPER_X_VAR_TH_ || y_var_ > UPPER_Y_VAR_TH_ || yaw_var_ > UPPER_YAW_VAR_TH_){
-		x_var_ = INIT_X_VAR_;
-		y_var_ = INIT_Y_VAR_;
-		yaw_var_ = INIT_YAW_VAR_;
-		return true;		
-	}
-	return false;
+    if(x_var_ > UPPER_X_VAR_TH_ || y_var_ > UPPER_Y_VAR_TH_ || yaw_var_ > UPPER_YAW_VAR_TH_){
+        x_var_ = INIT_X_VAR_;
+        y_var_ = INIT_Y_VAR_;
+        yaw_var_ = INIT_YAW_VAR_;
+        return true;
+    }
+    return false;
 }
 
 double multi_localizer::MCLBase::get_gaussian(double mu,double sigma)

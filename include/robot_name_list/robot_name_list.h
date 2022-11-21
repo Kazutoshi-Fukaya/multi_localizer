@@ -57,4 +57,4 @@ private:
 };
 }
 
-#endif	// ROBOT_NAME_H_
+#endif  // ROBOT_NAME_H_

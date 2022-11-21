@@ -7,31 +7,31 @@
     <!-- roomba -->
     <arg name="is_roomba1"  default="true" />
     <arg name="is_roomba2"  default="true" />
-	<arg name="is_roomba3"  default="true" />
-	<arg name="is_roomba4"  default="true" />
-	<arg name="is_roomba5"  default="true" />
-	<arg name="is_roomba6"  default="true" />
+    <arg name="is_roomba3"  default="true" />
+    <arg name="is_roomba4"  default="true" />
+    <arg name="is_roomba5"  default="true" />
+    <arg name="is_roomba6"  default="true" />
 
     <!--map_server -->
-	<arg name="is_map" default="false" />
-	<group if="$(arg is_map)" >
-		<node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/spare/map.yaml" />
-	</group>
+    <arg name="is_map" default="false" />
+    <group if="$(arg is_map)" >
+        <node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/spare/map.yaml" />
+    </group>
 
     <!-- bag -->
     <arg name="is_bag" default="false" />
     <group if="$(arg is_bag)" >
         <include file="$(find multi_localizer)/launch/utils/$(arg date).launch" >
             <arg name="is_map"     value="false" />
-			<arg name="is_rviz"    value="false" />
+            <arg name="is_rviz"    value="false" />
 
-			<!-- roomba -->
-			<arg name="is_roomba1" value="$(arg is_roomba1)" />
-			<arg name="is_roomba2" value="$(arg is_roomba2)" />
-			<arg name="is_roomba3" value="$(arg is_roomba3)" />
-			<arg name="is_roomba4" value="$(arg is_roomba4)" />
-			<arg name="is_roomba5" value="$(arg is_roomba5)" />
-			<arg name="is_roomba6" value="$(arg is_roomba6)" />
+            <!-- roomba -->
+            <arg name="is_roomba1" value="$(arg is_roomba1)" />
+            <arg name="is_roomba2" value="$(arg is_roomba2)" />
+            <arg name="is_roomba3" value="$(arg is_roomba3)" />
+            <arg name="is_roomba4" value="$(arg is_roomba4)" />
+            <arg name="is_roomba5" value="$(arg is_roomba5)" />
+            <arg name="is_roomba6" value="$(arg is_roomba6)" />
         </include>
     </group>
 

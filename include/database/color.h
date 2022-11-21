@@ -10,7 +10,7 @@ public:
     Color(double _r,double _g,double _b) :
         r(_r),g(_g), b(_b) {}
 
-	// for debug
+    // for debug
     void print_color()
     {
         std::cout << "Color(R,G,B): ("

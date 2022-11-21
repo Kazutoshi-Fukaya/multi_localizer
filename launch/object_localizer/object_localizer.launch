@@ -1,45 +1,46 @@
 <?xml version="1.0"?>
 <launch>
     <arg name="config_path" default="$(find multi_localizer)/config" />
-	<arg name="roomba"    default="roomba1" />
+    <arg name="roomba"    default="roomba1" />
 
-	<!-- tf -->
-	<include file="$(find multi_localizer)/launch/tf_broadcaster.launch" >
+    <!-- tf -->
+    <include file="$(find multi_localizer)/launch/tf_broadcaster.launch" >
         <arg name="roomba" value="$(arg roomba)"/>
     </include>
 
-	<!-- object_localizer -->
-	<arg name="use_ops_msg"      default="true" />
-	<arg name="use_ocps_msg"     default="true" />
-	<arg name="publish_database" default="true" />
-	<arg name="publish_obj_data" default="true" />
-	<arg name="is_record"        default="false" />
-	<node pkg="multi_localizer" type="object_localizer" name="$(arg roomba)_object_localizer" >
-		<!-- remap -->
-		<remap from="odom_in"   to="$(arg roomba)/roomba/odometry" />
-		<remap from="ops_in"    to="$(arg roomba)/object_positions" />
-		<remap from="ocps_in"   to="$(arg roomba)/object_color_positions" />
-		<remap from="pose_out"  to="$(arg roomba)/pose" />
-		<remap from="poses_out" to="$(arg roomba)/poses" />
-		<remap from="objects"   to="$(arg roomba)/objects" />
-		<remap from="pose_in"   to="$(arg roomba)/amcl_pose" />
-		<remap from="obj_out"   to="$(arg roomba)/objects_data" />
+    <!-- object_localizer -->
+    <arg name="use_ops_msg"      default="true" />
+    <arg name="use_ocps_msg"     default="true" />
+    <arg name="publish_database" default="true" />
+    <arg name="publish_obj_data" default="true" />
+    <arg name="is_record"        default="false" />
+    <node pkg="multi_localizer" type="object_localizer" name="$(arg roomba)_object_localizer" >
+        <!-- remap -->
+        <remap from="odom_in"   to="$(arg roomba)/roomba/odometry" />
+        <remap from="ops_in"    to="$(arg roomba)/object_positions" />
+        <remap from="ocps_in"   to="$(arg roomba)/object_color_positions" />
+        <remap from="pose_out"  to="$(arg roomba)/pose" />
+        <remap from="poses_out" to="$(arg roomba)/poses" />
+        <remap from="objects"   to="$(arg roomba)/objects" />
+        <remap from="pose_in"   to="$(arg roomba)/amcl_pose" />
+        <remap from="obj_out"   to="$(arg roomba)/objects_data" />
 
-		<!-- params -->
-		<param name="IS_TF"                  value="true" />
-		<param name="USE_OPS_MSG"            value="$(arg use_ops_msg)" />
-		<param name="USE_OCPS_MSG"           value="$(arg use_ocps_msg)" />
-		<param name="PUBLISH_DATABASE"       value="$(arg publish_database)" />
-		<param name="PUBLISH_OBJ_DATA"       value="$(arg publish_obj_data)" />
-		<param name="IS_RECORD"              value="$(arg is_record" />
-		<param name="BASE_LINK_FRAME_ID"     value="$(arg roomba)/base_link" />
-		<param name="INIT_OBJECTS_FILE_NAME" value="$(arg config_path)/init_info/20220224.csv" />
-		<param name="RECORD_FILE_PATH"       value="$(find multi_localizer)/record/$(arg roomba)_" />
+        <!-- params -->
+        <param name="IS_TF"                  value="true" />
+        <param name="USE_OPS_MSG"            value="$(arg use_ops_msg)" />
+        <param name="USE_OCPS_MSG"           value="$(arg use_ocps_msg)" />
+        <param name="PUBLISH_DATABASE"       value="$(arg publish_database)" />
+        <param name="PUBLISH_OBJ_DATA"       value="$(arg publish_obj_data)" />
+        <param name="IS_RECORD"              value="$(arg is_record" />
+        <param name="BASE_LINK_FRAME_ID"     value="$(arg roomba)/base_link" />
+        <param name="INIT_OBJECTS_FILE_NAME" value="$(arg config_path)/init_info/20220224.csv" />
+        <param name="RECORD_FILE_PATH"       value="$(find multi_localizer)/record/$(arg roomba)_" />
 
-		<rosparam command="load" file="$(arg config_path)/params/robot_name_list.yaml" />
-		<rosparam command="load" file="$(arg config_path)/params/object_params.yaml" />
-		<rosparam command="load" file="$(arg config_path)/params/robot_element.yaml" />
-		<rosparam command="load" file="$(arg config_path)/params/object_localizer/20220224/$(arg roomba).yaml" />
-	</node>
+        <!-- rosparams -->
+        <rosparam command="load" file="$(arg config_path)/params/robot_name_list.yaml" />
+        <rosparam command="load" file="$(arg config_path)/params/object_params.yaml" />
+        <rosparam command="load" file="$(arg config_path)/params/robot_element.yaml" />
+        <rosparam command="load" file="$(arg config_path)/params/object_localizer/20220224/$(arg roomba).yaml" />
+    </node>
 
 </launch>

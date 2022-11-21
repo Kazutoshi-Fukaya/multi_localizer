@@ -18,7 +18,7 @@ public:
         // TO DO
         double error_x = x - _x;
         double error_y = y - _y;
-    
+
         return get_weight(error_x)*get_weight(error_y);
     }
 

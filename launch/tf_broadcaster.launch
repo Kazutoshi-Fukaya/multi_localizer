@@ -1,24 +1,24 @@
 <?xml version="1.0"?>
 <launch>
     <arg name="config_path" default="$(find multi_localizer)/config" />
-	<arg name="roomba"      default="roomba1" />
-	
-	<!-- tf -->
-	<node pkg="multi_localizer" type="tf_broadcaster" name="$(arg roomba)_tf_broadcaster" >
-		<!-- remap -->
-		<remap from="odom_in" to="$(arg roomba)/roomba/odometry" />
+    <arg name="roomba"      default="roomba1" />
 
-		<!-- param -->
-		<param name="BASE_LINK_FRAME_ID" value="$(arg roomba)/base_link" />
-		<param name="LASER_FRAME_ID"     value="$(arg roomba)/laser" />
-		<param name="CAMERA_FRAME_ID"    value="$(arg roomba)/camera" />
-		
-		<!-- rosparam -->
-		<rosparam command="load" file="$(arg config_path)/params/tf_broadcaster.yaml" />
-	</node>
+    <!-- tf -->
+    <node pkg="multi_localizer" type="tf_broadcaster" name="$(arg roomba)_tf_broadcaster" >
+        <!-- remap -->
+        <remap from="odom_in" to="$(arg roomba)/roomba/odometry" />
 
-	<!-- rviz -->
-	<arg name="is_rviz" default="false" />
+        <!-- params -->
+        <param name="BASE_LINK_FRAME_ID" value="$(arg roomba)/base_link" />
+        <param name="LASER_FRAME_ID"     value="$(arg roomba)/laser" />
+        <param name="CAMERA_FRAME_ID"    value="$(arg roomba)/camera" />
+
+        <!-- rosparams -->
+        <rosparam command="load" file="$(arg config_path)/params/tf_broadcaster.yaml" />
+    </node>
+
+    <!-- rviz -->
+    <arg name="is_rviz" default="false" />
     <group if="$(arg is_rviz)" >
         <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg config_path)/rviz/tf/$(arg roomba).rviz" />
     </group>

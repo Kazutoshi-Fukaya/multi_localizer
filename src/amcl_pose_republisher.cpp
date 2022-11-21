@@ -52,6 +52,7 @@ private:
     geometry_msgs::PoseStamped pose_;
 
     // parameter
+    std::string ROBOT_NAME_;
     std::string MAP_FRAME_ID_;
     std::string BASE_LINK_FRAME_ID_;
     bool PUBLISH_OBJ_MSG_;
@@ -65,6 +66,7 @@ private:
 multi_localizer::AMCLPoseRepublisher::AMCLPoseRepublisher() :
     private_nh_("~"), start_time_(ros::Time::now())
 {
+    private_nh_.param("ROBOT_NAME",ROBOT_NAME_,{std::string("")});
     private_nh_.param("MAP_FRAME_ID",MAP_FRAME_ID_,{std::string("map")});
     private_nh_.param("BASE_LINK_FRAME_ID",BASE_LINK_FRAME_ID_,{std::string("base_link")});
 
@@ -96,7 +98,7 @@ void multi_localizer::AMCLPoseRepublisher::pose_callback(const geometry_msgs::Po
     pose_.header = msg->header;
     pose_.pose = msg->pose.pose;
     pose_pub_.publish(pose_);
-    
+
     tf2::Quaternion q;
     q.setRPY(0.0,0.0,tf2::getYaw(pose_.pose.orientation));
     tf2::Transform map_to_robot(q,tf2::Vector3(pose_.pose.position.x,pose_.pose.position.y,0.0));
@@ -138,11 +140,12 @@ void multi_localizer::AMCLPoseRepublisher::obj_callback(const object_detector_ms
         data.header.stamp = now_time;
 
         // pose
+        data.pose.name = ROBOT_NAME_;
         data.pose.weight = 1.0;
         data.pose.x = pose_.pose.position.x;
         data.pose.y = pose_.pose.position.y;
         data.pose.yaw = tf2::getYaw(pose_.pose.orientation);
-
+        
         object_detector_msgs::ObjectPositions filtered_ops;
         filter_ops_msg(*msg,filtered_ops);
         std::cout << msg->object_position.size() << ","

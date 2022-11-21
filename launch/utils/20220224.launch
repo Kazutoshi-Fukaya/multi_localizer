@@ -4,10 +4,10 @@
     <arg name="config_path" default="$(find multi_localizer)/config" />
 
     <!--map_server -->
-	<arg name="is_map" default="false" />
-	<group if="$(arg is_map)" >
-		<node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/spare/map.yaml" />
-	</group>
+    <arg name="is_map" default="false" />
+    <group if="$(arg is_map)" >
+        <node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/spare/map.yaml" />
+    </group>
 
     <!-- roomba1 -->
     <arg name="is_roomba1" default="true" />

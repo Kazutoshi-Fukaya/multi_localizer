@@ -1,10 +1,10 @@
 #include "single_mcl/single_mcl.h"
 
 multi_localizer::SingleMCL::SingleMCL() :
-	start_time_(ros::Time::now()),
+    start_time_(ros::Time::now()),
     has_received_map_(false)
 {
-	private_nh_.param("HZ",HZ_,{10});
+    private_nh_.param("HZ",HZ_,{10});
     private_nh_.param("PARTICLES_NUM",PARTICLES_NUM,{2000});
     private_nh_.param("RANGE_STEP",RANGE_STEP_,{5});
     private_nh_.param("INIT_X",INIT_X_,{7.0});
@@ -52,7 +52,7 @@ multi_localizer::SingleMCL::SingleMCL() :
         }
     }
 
-	init();
+    init();
 }
 
 multi_localizer::SingleMCL::~SingleMCL()
@@ -62,14 +62,14 @@ multi_localizer::SingleMCL::~SingleMCL()
 
 void multi_localizer::SingleMCL::map_callback(const nav_msgs::OccupancyGridConstPtr& msg)
 {
-	if(has_received_map_) return;
+    if(has_received_map_) return;
     static_map_ = *msg;
     has_received_map_ = true;
 }
 
 void multi_localizer::SingleMCL::lsr_callback(const sensor_msgs::LaserScanConstPtr& msg)
 {
-	lsr_ = *msg;
+    lsr_ = *msg;
 }
 
 void multi_localizer::SingleMCL::pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
@@ -117,17 +117,17 @@ void multi_localizer::SingleMCL::obj_callback(const object_detector_msgs::Object
 
 void multi_localizer::SingleMCL::observation_update()
 {
-	for(auto &p : particles_) p.weight_ = get_weight(p.pose_);
+    for(auto &p : particles_) p.weight_ = get_weight(p.pose_);
     normalize_particles_weight();
     calc_weight_params();
 }
 
 void multi_localizer::SingleMCL::publish_tf()
 {
-	tf2::Quaternion q;
+    tf2::Quaternion q;
     q.setRPY(0.0,0.0,tf2::getYaw(estimated_pose_.pose.orientation));
     tf2::Transform map_to_robot(q,tf2::Vector3(estimated_pose_.pose.position.x,estimated_pose_.pose.position.y,0.0));
-    
+
     geometry_msgs::PoseStamped robot_to_map_pose;
     robot_to_map_pose.header.frame_id = BASE_LINK_FRAME_ID_;
     robot_to_map_pose.header.stamp = lsr_.header.stamp;
@@ -153,7 +153,7 @@ void multi_localizer::SingleMCL::publish_tf()
 
 void multi_localizer::SingleMCL::record_pose()
 {
-    double time = (ros::Time::now() - start_time_).toSec();   
+    double time = (ros::Time::now() - start_time_).toSec();
     recorder_->add_trajectory(time,
                               estimated_pose_.pose.position.x,
                               estimated_pose_.pose.position.y,
@@ -165,13 +165,13 @@ void multi_localizer::SingleMCL::record_pose()
 
 bool multi_localizer::SingleMCL::is_start()
 {
-	if(has_received_map_ && has_received_odom_ && !lsr_.ranges.empty()) return true;
+    if(has_received_map_ && has_received_odom_ && !lsr_.ranges.empty()) return true;
     return false;
 }
 
 double multi_localizer::SingleMCL::get_weight(geometry_msgs::PoseStamped& pose)
 {
-	double x = pose.pose.position.x;
+    double x = pose.pose.position.x;
     double y = pose.pose.position.y;
     double yaw = tf2::getYaw(pose.pose.orientation);
     double weight = 0.0;
@@ -198,7 +198,7 @@ double multi_localizer::SingleMCL::get_weight(geometry_msgs::PoseStamped& pose)
 
 double multi_localizer::SingleMCL::get_dist_to_wall(double x,double y,double yaw)
 {
-	int cx_0 = (x - static_map_.info.origin.position.x)/static_map_.info.resolution;
+    int cx_0 = (x - static_map_.info.origin.position.x)/static_map_.info.resolution;
     int cy_0 = (y - static_map_.info.origin.position.y)/static_map_.info.resolution;
 
     int cx_1 = (x + MAX_RANGE_*std::cos(yaw) - static_map_.info.origin.position.x)/static_map_.info.resolution;
@@ -275,7 +275,7 @@ double multi_localizer::SingleMCL::get_dist_to_wall(double x,double y,double yaw
 
 void multi_localizer::SingleMCL::process()
 {
-	ros::Rate rate(HZ_);
+    ros::Rate rate(HZ_);
     while(ros::ok()){
         if(is_start()){
             if(is_dense() || is_spread()){
@@ -309,8 +309,8 @@ void multi_localizer::SingleMCL::process()
 
 int main(int argc,char** argv)
 {
-	ros::init(argc,argv,"single_mcl");
-	multi_localizer::SingleMCL single_mcl;
-	single_mcl.process();
-	return 0;
+    ros::init(argc,argv,"single_mcl");
+    multi_localizer::SingleMCL single_mcl;
+    single_mcl.process();
+    return 0;
 }

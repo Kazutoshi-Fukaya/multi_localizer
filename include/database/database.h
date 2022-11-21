@@ -47,7 +47,7 @@ public:
                 marker.pose = get_pose(sit->x,sit->y);
                 marker.color = it->first->get_color_msg();
                 if(sit->is_observed) marker.color.a = 1.0;
-                else marker.color.a = 0.3; 
+                else marker.color.a = 0.3;
                 markers.markers.emplace_back(marker);
                 marker_id++;
             }
@@ -77,7 +77,7 @@ public:
                 ROS_ERROR("out of range: %s", ex.what());
             }
         }
-		ifs.close();
+        ifs.close();
     }
 
     void all_objects_are_not_observed()
@@ -97,8 +97,8 @@ public:
             }
         }
         ROS_ERROR("No corresponding object");
-		sim = -1e10;
-		return Object();
+        sim = -1e10;
+        return Object();
     }
 
     // for debug

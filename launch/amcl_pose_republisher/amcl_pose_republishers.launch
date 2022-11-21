@@ -1,112 +1,112 @@
 <?xml version="1.0"?>
 <launch>
     <arg name="config_path" default="$(find multi_localizer)/config" />
-	<arg name="date"      default="20220224" />
-	<!-- <arg name="date"      default="20220630" /> -->
+    <arg name="date"      default="20220224" />
+    <!-- <arg name="date"      default="20220630" /> -->
 
-	<!-- roomba -->
+    <!-- roomba -->
     <arg name="is_roomba1"  default="true" />
     <arg name="is_roomba2"  default="true" />
-	<arg name="is_roomba3"  default="true" />
-	<arg name="is_roomba4"  default="true" />
-	<arg name="is_roomba5"  default="true" />
-	<arg name="is_roomba6"  default="true" />
+    <arg name="is_roomba3"  default="true" />
+    <arg name="is_roomba4"  default="true" />
+    <arg name="is_roomba5"  default="true" />
+    <arg name="is_roomba6"  default="true" />
 
-	<!-- rosbag -->
-	<arg name="is_bag" default="true" />
-	<group if="$(arg is_bag)" >
-		<include file="$(find multi_localizer)/launch/utils/image_connector.launch" >
-			<!-- default -->
-			<arg name="date"     value="$(arg date)" />
-			<arg name="is_map"   value="false" />
-			<arg name="is_bag"   value="true" />
-			<arg name="is_unzip" value="true" />
-			<arg name="is_rviz"  value="false" />
+    <!-- rosbag -->
+    <arg name="is_bag" default="true" />
+    <group if="$(arg is_bag)" >
+        <include file="$(find multi_localizer)/launch/utils/image_connector.launch" >
+            <!-- default -->
+            <arg name="date"     value="$(arg date)" />
+            <arg name="is_map"   value="false" />
+            <arg name="is_bag"   value="true" />
+            <arg name="is_unzip" value="true" />
+            <arg name="is_rviz"  value="false" />
 
-			<!-- roomba -->
-			<arg name="is_roomba1"  default="$(arg is_roomba1)" />
-			<arg name="is_roomba2"  default="$(arg is_roomba2)" />
-			<arg name="is_roomba3"  default="$(arg is_roomba3)" />
-			<arg name="is_roomba4"  default="$(arg is_roomba4)" />
-			<arg name="is_roomba5"  default="$(arg is_roomba5)" />
-			<arg name="is_roomba6"  default="$(arg is_roomba6)" />			
-		</include>
-	</group>
+            <!-- roomba -->
+            <arg name="is_roomba1"  default="$(arg is_roomba1)" />
+            <arg name="is_roomba2"  default="$(arg is_roomba2)" />
+            <arg name="is_roomba3"  default="$(arg is_roomba3)" />
+            <arg name="is_roomba4"  default="$(arg is_roomba4)" />
+            <arg name="is_roomba5"  default="$(arg is_roomba5)" />
+            <arg name="is_roomba6"  default="$(arg is_roomba6)" />
+        </include>
+    </group>
 
-	<!--map_server -->
-	<arg name="is_map" default="false" />
-	<group if="$(arg is_map)" >
-		<node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/spare/map.yaml" />
-	</group>
+    <!--map_server -->
+    <arg name="is_map" default="false" />
+    <group if="$(arg is_map)" >
+        <node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/spare/map.yaml" />
+    </group>
 
-	<!-- roomba1 -->
-	<group if="$(arg is_roomba1)" >
-		<include file="$(find multi_localizer)/launch/amcl_pose_republisher/amcl_pose_republisher.launch" >
-			<arg name="roomba"          value="roomba1" />
-			<arg name="is_bag"          value="false" />
-			<arg name="is_map"          value="false" />]
-			<arg name="is_rviz"         value="false" />
-			<arg name="publish_obj_msg" value="true" />
-		</include>
-	</group>
+    <!-- roomba1 -->
+    <group if="$(arg is_roomba1)" >
+        <include file="$(find multi_localizer)/launch/amcl_pose_republisher/amcl_pose_republisher.launch" >
+            <arg name="roomba"          value="roomba1" />
+            <arg name="is_bag"          value="false" />
+            <arg name="is_map"          value="false" />]
+            <arg name="is_rviz"         value="false" />
+            <arg name="publish_obj_msg" value="true" />
+        </include>
+    </group>
 
-	<!-- roomba2 -->
-	<group if="$(arg is_roomba2)" >
-		<include file="$(find multi_localizer)/launch/amcl_pose_republisher/amcl_pose_republisher.launch" >
-			<arg name="roomba"          value="roomba2" />
-			<arg name="is_bag"          value="false" />
-			<arg name="is_map"          value="false" />]
-			<arg name="is_rviz"         value="false" />
-			<arg name="publish_obj_msg" value="true" />
-		</include>
-	</group>
+    <!-- roomba2 -->
+    <group if="$(arg is_roomba2)" >
+        <include file="$(find multi_localizer)/launch/amcl_pose_republisher/amcl_pose_republisher.launch" >
+            <arg name="roomba"          value="roomba2" />
+            <arg name="is_bag"          value="false" />
+            <arg name="is_map"          value="false" />]
+            <arg name="is_rviz"         value="false" />
+            <arg name="publish_obj_msg" value="true" />
+        </include>
+    </group>
 
-	<!-- roomba3 -->
-	<group if="$(arg is_roomba3)" >
-		<include file="$(find multi_localizer)/launch/amcl_pose_republisher/amcl_pose_republisher.launch" >
-			<arg name="roomba"          value="roomba3" />
-			<arg name="is_bag"          value="false" />
-			<arg name="is_map"          value="false" />]
-			<arg name="is_rviz"         value="false" />
-			<arg name="publish_obj_msg" value="true" />
-		</include>
-	</group>
+    <!-- roomba3 -->
+    <group if="$(arg is_roomba3)" >
+        <include file="$(find multi_localizer)/launch/amcl_pose_republisher/amcl_pose_republisher.launch" >
+            <arg name="roomba"          value="roomba3" />
+            <arg name="is_bag"          value="false" />
+            <arg name="is_map"          value="false" />]
+            <arg name="is_rviz"         value="false" />
+            <arg name="publish_obj_msg" value="true" />
+        </include>
+    </group>
 
-	<!-- roomba4 -->
-	<group if="$(arg is_roomba4)" >
-		<include file="$(find multi_localizer)/launch/amcl_pose_republisher/amcl_pose_republisher.launch" >
-			<arg name="roomba"          value="roomba4" />
-			<arg name="is_bag"          value="false" />
-			<arg name="is_map"          value="false" />]
-			<arg name="is_rviz"         value="false" />
-			<arg name="publish_obj_msg" value="true" />
-		</include>
-	</group>
+    <!-- roomba4 -->
+    <group if="$(arg is_roomba4)" >
+        <include file="$(find multi_localizer)/launch/amcl_pose_republisher/amcl_pose_republisher.launch" >
+            <arg name="roomba"          value="roomba4" />
+            <arg name="is_bag"          value="false" />
+            <arg name="is_map"          value="false" />]
+            <arg name="is_rviz"         value="false" />
+            <arg name="publish_obj_msg" value="true" />
+        </include>
+    </group>
 
-	<!-- roomba5 -->
-	<group if="$(arg is_roomba5)" >
-		<include file="$(find multi_localizer)/launch/amcl_pose_republisher/amcl_pose_republisher.launch" >
-			<arg name="roomba"          value="roomba5" />
-			<arg name="is_bag"          value="false" />
-			<arg name="is_map"          value="false" />]
-			<arg name="is_rviz"         value="false" />
-			<arg name="publish_obj_msg" value="true" />
-		</include>
-	</group>
+    <!-- roomba5 -->
+    <group if="$(arg is_roomba5)" >
+        <include file="$(find multi_localizer)/launch/amcl_pose_republisher/amcl_pose_republisher.launch" >
+            <arg name="roomba"          value="roomba5" />
+            <arg name="is_bag"          value="false" />
+            <arg name="is_map"          value="false" />]
+            <arg name="is_rviz"         value="false" />
+            <arg name="publish_obj_msg" value="true" />
+        </include>
+    </group>
 
-	<!-- roomba6 -->
-	<group if="$(arg is_roomba6)" >
-		<include file="$(find multi_localizer)/launch/amcl_pose_republisher/amcl_pose_republisher.launch" >
-			<arg name="roomba"          value="roomba6" />
-			<arg name="is_bag"          value="false" />
-			<arg name="is_map"          value="false" />]
-			<arg name="is_rviz"         value="false" />
-			<arg name="publish_obj_msg" value="true" />
-		</include>
-	</group>
+    <!-- roomba6 -->
+    <group if="$(arg is_roomba6)" >
+        <include file="$(find multi_localizer)/launch/amcl_pose_republisher/amcl_pose_republisher.launch" >
+            <arg name="roomba"          value="roomba6" />
+            <arg name="is_bag"          value="false" />
+            <arg name="is_map"          value="false" />]
+            <arg name="is_rviz"         value="false" />
+            <arg name="publish_obj_msg" value="true" />
+        </include>
+    </group>
 
-	<!-- rviz -->
-	<arg name="is_rviz" default="false" />
+    <!-- rviz -->
+    <arg name="is_rviz" default="false" />
     <group if="$(arg is_rviz)" >
         <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg config_path)/rviz/amcl_pose_republisher/amcl_pose_republisher.rviz" />
     </group>

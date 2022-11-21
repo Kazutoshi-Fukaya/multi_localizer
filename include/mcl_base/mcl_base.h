@@ -21,11 +21,11 @@ namespace multi_localizer
 class MCLBase
 {
 public:
-	MCLBase();
-	virtual void process() = 0;
+    MCLBase();
+    virtual void process() = 0;
 
 protected:
-	class Particle
+    class Particle
     {
     public:
         Particle(MCLBase* mcl);
@@ -39,19 +39,19 @@ protected:
         MCLBase* mcl_;
     };
 
-	void odom_callback(const nav_msgs::OdometryConstPtr& msg);
+    void odom_callback(const nav_msgs::OdometryConstPtr& msg);
 
     virtual void observation_update() = 0;
-	virtual void publish_tf() = 0;
-	virtual bool is_start() = 0;
-	virtual double get_weight(geometry_msgs::PoseStamped& pose) = 0;
+    virtual void publish_tf() = 0;
+    virtual bool is_start() = 0;
+    virtual double get_weight(geometry_msgs::PoseStamped& pose) = 0;
 
 
-	void init();
+    void init();
     void init_pose(geometry_msgs::PoseStamped& pose,double x,double y,double yaw);
     void set_pose(geometry_msgs::PoseStamped& pose,double x,double y,double yaw);
     void set_particles(double x,double y,double yaw,double x_var,double y_var,double yaw_var);
-	void motion_update();
+    void motion_update();
     void normalize_particles_weight();
     void calc_weight_params();
     void resample_particles();
@@ -64,7 +64,7 @@ protected:
     Particle generate_particle();
     geometry_msgs::Quaternion get_quat_msg_from_yaw(double yaw);
     bool is_dense();
-	bool is_spread();
+    bool is_spread();
     double get_gaussian(double mu,double sigma);
     double get_angle_diff(double a,double b);
     double get_particle_weight_sum();
@@ -138,4 +138,4 @@ protected:
 };
 }
 
-#endif	// MCL_BASE_H_
+#endif  // MCL_BASE_H_
