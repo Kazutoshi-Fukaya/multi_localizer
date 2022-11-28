@@ -28,6 +28,11 @@
         <arg name="roomba" value="$(arg roomba)"/>
     </include>
 
+    <!-- semi_dynamic_map_creator -->
+    <include file="$(find multi_localizer)/launch/semi_dynamic_map_creator/semi_dynamic_map_creator.launch" >
+        <arg name="roomba" value="$(arg roomba)" />
+    </include>
+
     <!-- single_mcl -->
     <arg name="is_record"        default="false" />
     <arg name="publish_obj_data" default="false" />

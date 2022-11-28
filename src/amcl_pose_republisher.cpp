@@ -72,7 +72,7 @@ multi_localizer::AMCLPoseRepublisher::AMCLPoseRepublisher() :
 
     private_nh_.param("PROBABILITY_TH",PROBABILITY_TH_,{0.8});
     private_nh_.param("ANGLE_OF_VIEW",ANGLE_OF_VIEW_,{86.0/180.0*M_PI});
-    private_nh_.param("VISIBLE_LOWER_DISTANCE",VISIBLE_LOWER_DISTANCE_,{0.2});
+    private_nh_.param("VISIBLE_LOWER_DISTANCE",VISIBLE_LOWER_DISTANCE_,{0.1});
     private_nh_.param("VISIBLE_UPPER_DISTANCE",VISIBLE_UPPER_DISTANCE_,{5.0});
 
     pose_sub_ = nh_.subscribe("pose_in",1,&AMCLPoseRepublisher::pose_callback,this);
@@ -187,7 +187,7 @@ void multi_localizer::AMCLPoseRepublisher::filter_ops_msg(object_detector_msgs::
         double l_vertex_y = std::sin(0.5*(M_PI + ANGLE_OF_VIEW_));
 
         double dist = std::sqrt(op.x*op.x + op.z*op.z);
-        if(//VISIBLE_LOWER_DISTANCE_ < dist &&
+        if(VISIBLE_LOWER_DISTANCE_ < dist &&
            dist < VISIBLE_UPPER_DISTANCE_){
             double x = op.x;
             double y = op.z;

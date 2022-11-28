@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+	<arg name="roomba" default="roomba1" />
+
+	<!-- semi_dynamic_map_creator -->
+	<node pkg="multi_localizer" type="semi_dynamic_map_creator" name="$(arg roomba)_semi_dynamic_map_creator" >
+		<!-- remap -->
+		<remap from="lsr_in"  to="$(arg roomba)/corrected_scan" />
+		<remap from="pose_in" to="$(arg roomba)/pose" />
+		<remap from="map_out" to="$(arg roomba)/local_map" />
+
+		<!-- params -->
+		<param name="LOCAL_MAP_FRAME_ID" value="$(arg roomba)/base_link" />
+	</node >
+	
+</launch>

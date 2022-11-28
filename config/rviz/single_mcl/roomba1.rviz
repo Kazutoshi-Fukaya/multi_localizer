@@ -114,6 +114,16 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: false
+    - Alpha: 0.699999988079071
+      Class: rviz/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic: /roomba1/local_map
+      Unreliable: false
+      Use Timestamp: false
+      Value: true
     - Class: rviz/TF
       Enabled: true
       Frame Timeout: 15

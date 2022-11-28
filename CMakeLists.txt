@@ -73,3 +73,7 @@ target_link_libraries(image_connector
     ${catkin_LIBRARIES}
     ${OpenCV_LIBRARIES}
 )
+
+# semi_dynamic_map_creator
+add_executable(semi_dynamic_map_creator src/semi_dynamic_map_creator.cpp)
+target_link_libraries(semi_dynamic_map_creator ${catkin_LIBRARIES})
