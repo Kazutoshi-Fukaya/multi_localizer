@@ -14,8 +14,9 @@
 
     <!--map_server -->
     <arg name="is_map" default="true" />
+    <arg name="map_name" default="static_map" />
     <group if="$(arg is_map)" >
-        <node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/static_map.yaml" />
+        <node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/$(arg map_name).yaml" />
     </group>
 
     <!-- tf -->
@@ -24,8 +25,14 @@
     </include>
 
     <!-- pole_eliminator -->
-    <include file="$(find pole_eliminator)/launch/pole_eliminator.launch" >
-        <arg name="roomba" value="$(arg roomba)"/>
+    <include file="$(find low_performance_lidar)/launch/low_performance_lidar.launch" >
+        <!-- default -->
+        <arg name="roomba"  value="$(arg roomba)"/>
+        <arg name="is_rviz" value="false" />
+
+        <!-- params -->
+        <arg name="range_step"      value="1" />
+        <arg name="upper_threshold" value="5" />
     </include>
 
     <!-- semi_dynamic_map_creator -->
@@ -40,7 +47,8 @@
         <!-- remap -->
         <remap from="odom_in"   to="$(arg roomba)/roomba/odometry" />
         <remap from="map_in"    to="map" />
-        <remap from="lsr_in"    to="$(arg roomba)/corrected_scan" />
+        <!-- <remap from="lsr_in"    to="$(arg roomba)/corrected_scan" /> -->
+        <remap from="lsr_in"    to="$(arg roomba)/filtered_scan" />
         <remap from="pose_out"  to="$(arg roomba)/pose" />
         <remap from="poses_out" to="$(arg roomba)/poses" />
         <remap from="obj_in"    to="$(arg roomba)/object_positions" />

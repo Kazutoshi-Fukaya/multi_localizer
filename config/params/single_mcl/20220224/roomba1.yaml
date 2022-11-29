@@ -10,7 +10,7 @@ MAX_RANGE: 25
 
 # Initial Position
 INIT_X: 7.0
-INIT_Y: 0.0
+INIT_Y: 0.5
 INIT_YAW: 1.5708
 
 # Initial Variance
