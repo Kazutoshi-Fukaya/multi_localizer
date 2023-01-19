@@ -1,8 +1,8 @@
-#include "multi_pr_localizer/multi_pr_localizer.h"
+#include "pr_localizer/pr_localizer.h"
 
 using namespace multi_localizer;
 
-MultiPRLocalizer::MultiPRLocalizer()
+PRLocalizer::PRLocalizer()
 {
 	// MCL Base
 	private_nh_.param("HZ",HZ_,{10});
@@ -19,8 +19,8 @@ MultiPRLocalizer::MultiPRLocalizer()
     private_nh_.param("LOWER_X_VAR_TH",LOWER_X_VAR_TH_,{0.15});
     private_nh_.param("LOWER_Y_VAR_TH",LOWER_Y_VAR_TH_,{0.15});
     private_nh_.param("LOWER_YAW_VAR_TH",LOWER_YAW_VAR_TH_,{0.10});
-    private_nh_.param("ALPHA_1",ALPHA_1_,{0.1});
-    private_nh_.param("ALPHA_2",ALPHA_2_,{0.1});
+    private_nh_.param("ALPHA_1",ALPHA_1_,{0.3});
+    private_nh_.param("ALPHA_2",ALPHA_2_,{0.3});
     private_nh_.param("ALPHA_3",ALPHA_3_,{0.1});
     private_nh_.param("ALPHA_4",ALPHA_4_,{0.1});
     private_nh_.param("ALPHA_SLOW",ALPHA_SLOW_,{0.001});
@@ -31,13 +31,18 @@ MultiPRLocalizer::MultiPRLocalizer()
 
 	// multi_pr_localizer params
 	private_nh_.param("ERROR_TH",ERROR_TH_,{1.5});
+    private_nh_.param("SCORE_TH",SCORE_TH_,{0.6});
+
+    pr_pose_sub_ = nh_.subscribe("pr_pose_in",1,&PRLocalizer::pr_callback,this);
+
+    init();
 }
 
-MultiPRLocalizer::~MultiPRLocalizer() {}
+PRLocalizer::~PRLocalizer() {}
 
-void MultiPRLocalizer::pr_callback(const place_recognition_msgs::PoseStampedConstPtr& msg) { pr_pose_ = *msg; }
+void PRLocalizer::pr_callback(const place_recognition_msgs::PoseStampedConstPtr& msg) { pr_pose_ = *msg; }
 
-void MultiPRLocalizer::observation_update()
+void PRLocalizer::observation_update()
 {
 	if(!is_observation()) return;
 	for(auto &p : particles_) p.weight_ = get_weight(p.pose_);
@@ -45,7 +50,7 @@ void MultiPRLocalizer::observation_update()
     calc_weight_params();
 }
 
-void MultiPRLocalizer::publish_tf()
+void PRLocalizer::publish_tf()
 {
 	tf2::Quaternion q;
     q.setRPY(0.0,0.0,tf2::getYaw(estimated_pose_.pose.orientation));
@@ -74,22 +79,25 @@ void MultiPRLocalizer::publish_tf()
     broadcaster_->sendTransform(map_to_odom_transform);
 }
 
-bool MultiPRLocalizer::is_start()
+bool PRLocalizer::is_start()
 {
 	if(has_received_odom_) return true;
     return false;
 }
 
-bool MultiPRLocalizer::is_observation()
+bool PRLocalizer::is_observation()
 {
 	double diff_x = estimated_pose_.pose.position.x - pr_pose_.x;
 	double diff_y = estimated_pose_.pose.position.y - pr_pose_.y;
 	double dist = std::sqrt(diff_x*diff_x + diff_y*diff_y);
 	if(dist < ERROR_TH_) return true;
+    if(pr_pose_.score > SCORE_TH_){
+        set_particles(pr_pose_.x,pr_pose_.y,pr_pose_.theta,INIT_X_VAR_,INIT_Y_VAR_,INIT_YAW_VAR_);
+    }
 	return false;
 }
 
-double MultiPRLocalizer::get_weight(geometry_msgs::PoseStamped& pose)
+double PRLocalizer::get_weight(geometry_msgs::PoseStamped& pose)
 {
 	double weight = 0.0;
 	double diff_x = pose.pose.position.x - pr_pose_.x;
@@ -107,12 +115,12 @@ double MultiPRLocalizer::get_weight(geometry_msgs::PoseStamped& pose)
 	return weight;
 }
 
-double MultiPRLocalizer::weight_func(double mu,double sigma)
+double PRLocalizer::weight_func(double mu,double sigma)
 {
 	return std::exp(-0.5*mu*mu/(sigma*sigma))/(std::sqrt(2.0*M_PI*sigma*sigma));
 }
 
-void MultiPRLocalizer::process()
+void PRLocalizer::process()
 {
 	ros::Rate rate(HZ_);
 	while(ros::ok()){
@@ -145,8 +153,8 @@ void MultiPRLocalizer::process()
 
 int main(int argc,char** argv)
 {
-	ros::init(argc,argv,"multi_pr_localizer");
-	MultiPRLocalizer multi_pr_localizer;
-	multi_pr_localizer.process();
+	ros::init(argc,argv,"pr_localizer");
+	PRLocalizer pr_localizer;
+	pr_localizer.process();
 	return 0;
 }

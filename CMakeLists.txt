@@ -52,6 +52,13 @@ add_executable(single_mcl
 )
 target_link_libraries(single_mcl ${catkin_LIBRARIES})
 
+# multi_pr_localizer
+add_executable(pr_localizer
+    src/mcl_base.cpp
+    src/particle.cpp
+    src/pr_localizer.cpp
+)
+target_link_libraries(pr_localizer ${catkin_LIBRARIES})
 
 # object_localizer
 # add_executable(object_localizer
@@ -81,5 +88,5 @@ add_executable(amcl_pose_republisher ros_utils/amcl_pose_republisher.cpp)
 target_link_libraries(amcl_pose_republisher ${catkin_LIBRARIES})
 
 # semi_dynamic_map_creator
-add_executable(semi_dynamic_map_creator src/semi_dynamic_map_creator.cpp)
-target_link_libraries(semi_dynamic_map_creator ${catkin_LIBRARIES})
+# add_executable(semi_dynamic_map_creator src/semi_dynamic_map_creator.cpp)
+# target_link_libraries(semi_dynamic_map_creator ${catkin_LIBRARIES})

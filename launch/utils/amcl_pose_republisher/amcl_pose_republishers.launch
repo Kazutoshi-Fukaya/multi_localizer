@@ -1,8 +1,6 @@
 <?xml version="1.0"?>
 <launch>
     <arg name="config_path" default="$(find multi_localizer)/config" />
-    <arg name="date"      default="20220224" />
-    <!-- <arg name="date"      default="20220630" /> -->
 
     <!-- roomba -->
     <arg name="is_roomba1"  default="true" />
@@ -13,14 +11,15 @@
     <arg name="is_roomba6"  default="true" />
 
     <!-- rosbag -->
+    <!-- <arg name="date"      default="20220224" /> -->
+    <arg name="date"      default="20220630" />
     <arg name="is_bag" default="true" />
     <group if="$(arg is_bag)" >
-        <include file="$(find multi_localizer)/launch/utils/image_connector.launch" >
+        <include file="$(find multi_localizer)/launch/utils/images_connector.launch" >
             <!-- default -->
             <arg name="date"     value="$(arg date)" />
-            <arg name="is_map"   value="false" />
+            <arg name="is_map"   value="true" />
             <arg name="is_bag"   value="true" />
-            <arg name="is_unzip" value="true" />
             <arg name="is_rviz"  value="false" />
 
             <!-- roomba -->
@@ -33,15 +32,9 @@
         </include>
     </group>
 
-    <!--map_server -->
-    <arg name="is_map" default="false" />
-    <group if="$(arg is_map)" >
-        <node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/spare/map.yaml" />
-    </group>
-
     <!-- roomba1 -->
     <group if="$(arg is_roomba1)" >
-        <include file="$(find multi_localizer)/launch/amcl_pose_republisher/amcl_pose_republisher.launch" >
+        <include file="$(find multi_localizer)/launch/utils/amcl_pose_republisher/amcl_pose_republisher.launch" >
             <arg name="roomba"          value="roomba1" />
             <arg name="is_bag"          value="false" />
             <arg name="is_map"          value="false" />]
@@ -52,7 +45,7 @@
 
     <!-- roomba2 -->
     <group if="$(arg is_roomba2)" >
-        <include file="$(find multi_localizer)/launch/amcl_pose_republisher/amcl_pose_republisher.launch" >
+        <include file="$(find multi_localizer)/launch/utils/amcl_pose_republisher/amcl_pose_republisher.launch" >
             <arg name="roomba"          value="roomba2" />
             <arg name="is_bag"          value="false" />
             <arg name="is_map"          value="false" />]
@@ -63,7 +56,7 @@
 
     <!-- roomba3 -->
     <group if="$(arg is_roomba3)" >
-        <include file="$(find multi_localizer)/launch/amcl_pose_republisher/amcl_pose_republisher.launch" >
+        <include file="$(find multi_localizer)/launch/utils/amcl_pose_republisher/amcl_pose_republisher.launch" >
             <arg name="roomba"          value="roomba3" />
             <arg name="is_bag"          value="false" />
             <arg name="is_map"          value="false" />]
@@ -74,7 +67,7 @@
 
     <!-- roomba4 -->
     <group if="$(arg is_roomba4)" >
-        <include file="$(find multi_localizer)/launch/amcl_pose_republisher/amcl_pose_republisher.launch" >
+        <include file="$(find multi_localizer)/launch/utils/amcl_pose_republisher/amcl_pose_republisher.launch" >
             <arg name="roomba"          value="roomba4" />
             <arg name="is_bag"          value="false" />
             <arg name="is_map"          value="false" />]
@@ -85,10 +78,10 @@
 
     <!-- roomba5 -->
     <group if="$(arg is_roomba5)" >
-        <include file="$(find multi_localizer)/launch/amcl_pose_republisher/amcl_pose_republisher.launch" >
+        <include file="$(find multi_localizer)/launch/utils/amcl_pose_republisher/amcl_pose_republisher.launch" >
             <arg name="roomba"          value="roomba5" />
             <arg name="is_bag"          value="false" />
-            <arg name="is_map"          value="false" />]
+            <arg name="is_map"          value="false" />
             <arg name="is_rviz"         value="false" />
             <arg name="publish_obj_msg" value="true" />
         </include>
@@ -96,7 +89,7 @@
 
     <!-- roomba6 -->
     <group if="$(arg is_roomba6)" >
-        <include file="$(find multi_localizer)/launch/amcl_pose_republisher/amcl_pose_republisher.launch" >
+        <include file="$(find multi_localizer)/launch/utils/amcl_pose_republisher/amcl_pose_republisher.launch" >
             <arg name="roomba"          value="roomba6" />
             <arg name="is_bag"          value="false" />
             <arg name="is_map"          value="false" />]

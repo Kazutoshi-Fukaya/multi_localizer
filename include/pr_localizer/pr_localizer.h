@@ -1,5 +1,5 @@
-#ifndef MULTI_PR_LOCALIZER_H_
-#define MULTI_PR_LOCALIZER_H_
+#ifndef PR_LOCALIZER_H_
+#define PR_LOCALIZER_H_
 
 #include <ros/ros.h>
 
@@ -9,11 +9,11 @@
 
 namespace multi_localizer
 {
-class MultiPRLocalizer : public MCLBase
+class PRLocalizer : public MCLBase
 {
 public:
-	MultiPRLocalizer();
-	~MultiPRLocalizer();
+	PRLocalizer();
+	~PRLocalizer();
 	void process();
 
 private:
@@ -28,12 +28,16 @@ private:
 
 	double weight_func(double mu,double sigma);
 
+	// subscriber
+	ros::Subscriber pr_pose_sub_;
+
 	// buffer
 	place_recognition_msgs::PoseStamped pr_pose_;
 
 	// multi_pr_localizer params
 	double ERROR_TH_;
+	double SCORE_TH_;
 };
 } // namespace multi_localizer
 
-#endif	// MULTI_PR_LOCALIZER_H_
+#endif	// PR_LOCALIZER_H_
