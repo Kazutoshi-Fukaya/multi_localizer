@@ -33,14 +33,13 @@ private:
     void input_to_map(double angle,double lsr_range);
     void filter_ops_msg(object_detector_msgs::ObjectPositions input_ops,
                         object_detector_msgs::ObjectPositions& output_ops);
-    void update_latest_map(visualization_msgs::MarkerArray obj_poses,
-                           geometry_msgs::PoseArray obs_poses);
+    void update_latest_map(visualization_msgs::MarkerArray obj_poses);
 
     // TO DO
     void add_map_pose(geometry_msgs::PoseArray obs_poses);
-    geometry_msgs::PoseArray get_obs(geometry_msgs::Pose pose,
-                                     geometry_msgs::PoseArray poses);
+    geometry_msgs::PoseArray get_obs(geometry_msgs::Pose pose);
 
+	geometry_msgs::Pose get_pose_msg(double x,double y);
     bool is_pole(double angle);
     bool is_in_map(double x,double y);
     int coordinate_to_map_index(double x,double y);
@@ -64,8 +63,8 @@ private:
     // buffer
     nav_msgs::OccupancyGrid local_map_;
     nav_msgs::OccupancyGrid latest_map_;
+	geometry_msgs::PoseArray obs_poses_;
     geometry_msgs::PoseStamped pose_;
-    geometry_msgs::PoseArray obstacle_poses_;
     sensor_msgs::LaserScan lsr_;
     bool has_received_pose_;
     bool has_received_map_;
@@ -75,6 +74,7 @@ private:
 
     // params
     std::string LOCAL_MAP_FRAME_ID_;
+	std::string MAP_FRAME_ID_;
     bool HAS_REMOVED_POLE_;
     int WIDTH_;
     int HEIGHT_;

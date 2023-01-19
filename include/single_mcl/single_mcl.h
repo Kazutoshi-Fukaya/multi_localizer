@@ -2,7 +2,7 @@
 #define SINGLE_MCL_H_
 
 #include "mcl_base/mcl_base.h"
-#include "recorder/recorder.h"
+#include "utils/recorder/recorder.h"
 
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <sensor_msgs/LaserScan.h>
@@ -68,6 +68,6 @@ private:
     double Z_MAX_;
     double Z_RAND_;
 };
-}
+} // namespace multi_localizer
 
 #endif  // SINGLE_MCL_H_

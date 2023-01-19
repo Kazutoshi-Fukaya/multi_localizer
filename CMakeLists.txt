@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
     nav_msgs
     object_color_detector_msgs
     object_detector_msgs
+    place_recognition_msgs
     roscpp
     rospy
     sensor_msgs
@@ -43,10 +44,6 @@ include_directories(
     ${OpenCV_INCLUDE_DIRS}
 )
 
-# tf_broadcaster
-add_executable(tf_broadcaster src/tf_broadcaster.cpp)
-target_link_libraries(tf_broadcaster ${catkin_LIBRARIES})
-
 # single_mcl
 add_executable(single_mcl 
     src/mcl_base.cpp
@@ -55,24 +52,33 @@ add_executable(single_mcl
 )
 target_link_libraries(single_mcl ${catkin_LIBRARIES})
 
-# amcl_pose_republisher
-add_executable(amcl_pose_republisher src/amcl_pose_republisher.cpp)
-target_link_libraries(amcl_pose_republisher ${catkin_LIBRARIES})
 
 # object_localizer
-add_executable(object_localizer
-    src/mcl_base.cpp
-    src/particle.cpp
-    src/object_localizer.cpp
-)
-target_link_libraries(object_localizer ${catkin_LIBRARIES})
+# add_executable(object_localizer
+#     src/mcl_base.cpp
+#     src/particle.cpp
+#     src/object_localizer.cpp
+# )
+# target_link_libraries(object_localizer ${catkin_LIBRARIES})
 
-# image_connector
-add_executable(image_connector src/image_connector.cpp)
-target_link_libraries(image_connector 
+# ============================== UTILS ==============================
+
+# images_connector
+add_executable(images_connector 
+    ros_utils/image_subscriber.cpp
+    ros_utils/images_connector.cpp)
+target_link_libraries(images_connector 
     ${catkin_LIBRARIES}
     ${OpenCV_LIBRARIES}
 )
+
+# tf_broadcaster
+add_executable(tf_broadcaster ros_utils/tf_broadcaster.cpp)
+target_link_libraries(tf_broadcaster ${catkin_LIBRARIES})
+
+# amcl_pose_republisher
+add_executable(amcl_pose_republisher ros_utils/amcl_pose_republisher.cpp)
+target_link_libraries(amcl_pose_republisher ${catkin_LIBRARIES})
 
 # semi_dynamic_map_creator
 add_executable(semi_dynamic_map_creator src/semi_dynamic_map_creator.cpp)

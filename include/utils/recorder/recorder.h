@@ -120,6 +120,6 @@ private:
     std::vector<Trajectory> trajectories_;
     std::vector<Observation> observations_;
 };
-}
+} // namespace multi_localizer
 
 #endif  // RECORDER_H_

@@ -1,69 +1,8 @@
-#include <ros/ros.h>
-#include <geometry_msgs/PoseWithCovarianceStamped.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/TransformStamped.h>
-#include <nav_msgs/Odometry.h>
-#include <tf2_ros/buffer.h>
-#include <tf2_ros/transform_listener.h>
-#include <tf2_ros/transform_broadcaster.h>
-#include <tf2/utils.h>
+#include "utils/amcl_pose_republisher/amcl_pose_republisher.h"
 
-// Custom msg
-#include "object_detector_msgs/ObjectPositions.h"
-#include "multi_robot_msgs/ObjectsData.h"
+using namespace multi_localizer;
 
-namespace multi_localizer
-{
-class AMCLPoseRepublisher
-{
-public:
-    AMCLPoseRepublisher();
-    void process();
-
-private:
-    void odom_callback(const nav_msgs::OdometryConstPtr& msg);
-    void pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg);
-    void obj_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg);
-
-    void filter_ops_msg(object_detector_msgs::ObjectPositions input_ops,
-                        object_detector_msgs::ObjectPositions& output_ops);
-
-    // node handler
-    ros::NodeHandle nh_;
-    ros::NodeHandle private_nh_;
-
-    // subscriber
-    ros::Subscriber pose_sub_;
-    ros::Subscriber odom_sub_;
-    ros::Subscriber obj_sub_;
-
-    // publisher
-    ros::Publisher pose_pub_;
-    ros::Publisher obj_pub_;
-
-    // tf
-    boost::shared_ptr<tf2_ros::Buffer> buffer_;
-    boost::shared_ptr<tf2_ros::TransformListener> listener_;
-    boost::shared_ptr<tf2_ros::TransformBroadcaster> broadcaster_;
-
-    // buffer
-    ros::Time start_time_;
-    nav_msgs::Odometry odom_;
-    geometry_msgs::PoseStamped pose_;
-
-    // parameter
-    std::string ROBOT_NAME_;
-    std::string MAP_FRAME_ID_;
-    std::string BASE_LINK_FRAME_ID_;
-    bool PUBLISH_OBJ_MSG_;
-    double PROBABILITY_TH_;
-    double ANGLE_OF_VIEW_;
-    double VISIBLE_LOWER_DISTANCE_;
-    double VISIBLE_UPPER_DISTANCE_;
-};
-}
-
-multi_localizer::AMCLPoseRepublisher::AMCLPoseRepublisher() :
+AMCLPoseRepublisher::AMCLPoseRepublisher() :
     private_nh_("~"), start_time_(ros::Time::now())
 {
     private_nh_.param("ROBOT_NAME",ROBOT_NAME_,{std::string("")});
@@ -91,9 +30,9 @@ multi_localizer::AMCLPoseRepublisher::AMCLPoseRepublisher() :
     broadcaster_.reset(new tf2_ros::TransformBroadcaster);
 }
 
-void multi_localizer::AMCLPoseRepublisher::odom_callback(const nav_msgs::OdometryConstPtr& msg) { odom_ = *msg; }
+void AMCLPoseRepublisher::odom_callback(const nav_msgs::OdometryConstPtr& msg) { odom_ = *msg; }
 
-void multi_localizer::AMCLPoseRepublisher::pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
+void AMCLPoseRepublisher::pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
 {
     pose_.header = msg->header;
     pose_.pose = msg->pose.pose;
@@ -126,7 +65,7 @@ void multi_localizer::AMCLPoseRepublisher::pose_callback(const geometry_msgs::Po
     broadcaster_->sendTransform(map_to_odom_transform);
 }
 
-void multi_localizer::AMCLPoseRepublisher::obj_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg)
+void AMCLPoseRepublisher::obj_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg)
 {
     if(PUBLISH_OBJ_MSG_){
         multi_robot_msgs::ObjectsData data;
@@ -169,8 +108,8 @@ void multi_localizer::AMCLPoseRepublisher::obj_callback(const object_detector_ms
     }
 }
 
-void multi_localizer::AMCLPoseRepublisher::filter_ops_msg(object_detector_msgs::ObjectPositions input_ops,
-                                                          object_detector_msgs::ObjectPositions& output_ops)
+void AMCLPoseRepublisher::filter_ops_msg(object_detector_msgs::ObjectPositions input_ops,
+                                         object_detector_msgs::ObjectPositions& output_ops)
 {
     output_ops.header = input_ops.header;
     output_ops.object_position.clear();
@@ -201,12 +140,12 @@ void multi_localizer::AMCLPoseRepublisher::filter_ops_msg(object_detector_msgs::
     }
 }
 
-void multi_localizer::AMCLPoseRepublisher::process() { ros::spin(); }
+void AMCLPoseRepublisher::process() { ros::spin(); }
 
 int main(int argc,char** argv)
 {
-    ros::init(argc,argv,"amcl_pose");
-    multi_localizer::AMCLPoseRepublisher amcl_pose_republisher;
+    ros::init(argc,argv,"amcl_pose_republisher");
+    AMCLPoseRepublisher amcl_pose_republisher;
     amcl_pose_republisher.process();
     return 0;
 }

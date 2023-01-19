@@ -1,90 +1,20 @@
-#include <ros/ros.h>
-#include <sensor_msgs/Image.h>
-#include <cv_bridge/cv_bridge.h>
-#include <opencv2/opencv.hpp>
+#include "utils/images_connector/images_connector.h"
 
-namespace multi_localizer
-{
-class ImageSubscriber
-{
-public:
-    ImageSubscriber();
-    ImageSubscriber(ros::NodeHandle _nh,std::string robot_name);
+using namespace multi_localizer;
 
-    cv::Mat get_img();
-
-private:
-    void img_callback(const sensor_msgs::ImageConstPtr& msg);
-
-    // node handle
-    ros::NodeHandle nh_;
-
-    // subscriber
-    ros::Subscriber img_sub_;
-
-    // buffer
-    cv::Mat img_;
-};
-
-class ImageConnector : public std::vector<ImageSubscriber*>
-{
-public:
-    ImageConnector();
-    void process();
-
-private:
-    void init();
-    void publish_img();
-
-    // buffer
-    ros::NodeHandle nh_;
-    ros::NodeHandle private_nh_;
-
-    // publisher
-    ros::Publisher img_pub_;
-
-    // param
-    int HZ_;
-};
-}
-
-// ImageSubscriber
-multi_localizer::ImageSubscriber::ImageSubscriber() {}
-
-multi_localizer::ImageSubscriber::ImageSubscriber(ros::NodeHandle _nh,std::string robot_name) :
-    nh_(_nh)
-{
-    std::string topic_name = robot_name + "/detected_image";
-    img_sub_ = nh_.subscribe(topic_name,1,&ImageSubscriber::img_callback,this);
-}
-
-void multi_localizer::ImageSubscriber::img_callback(const sensor_msgs::ImageConstPtr& msg)
-{
-    cv_bridge::CvImagePtr cv_ptr;
-    try{
-        cv_ptr = cv_bridge::toCvCopy(msg,sensor_msgs::image_encodings::BGR8);
-    }
-    catch(cv_bridge::Exception& ex){
-        ROS_ERROR("Could not convert to color image");
-        return;
-    }
-    img_ = cv_ptr->image;
-}
-
-cv::Mat multi_localizer::ImageSubscriber::get_img() { return img_; }
-
-// Image Connector
-multi_localizer::ImageConnector::ImageConnector() :
+ImagesConnector::ImagesConnector() :
     private_nh_("~")
 {
     private_nh_.param("HZ",HZ_,{10});
 
-    img_pub_ = nh_.advertise<sensor_msgs::Image>("image",1);
+    std::string img_topic_name;
+    private_nh_.param("IMG_TOPIC_NAME",img_topic_name,{std::string("detected_image")});
+    init(img_topic_name);
 
-    init();
+    img_pub_ = nh_.advertise<sensor_msgs::Image>("image",1);
 }
 
-void multi_localizer::ImageConnector::init()
+void ImagesConnector::init(std::string img_topic_name)
 {
     this->clear();
     std::string robot_element_list_name;
@@ -107,12 +37,12 @@ void multi_localizer::ImageConnector::init()
            robot_element_list[i]["color"].getType() == XmlRpc::XmlRpcValue::TypeString){
             std::string robot_name = static_cast<std::string>(robot_element_list[i]["robot_name"]);
             std::string color = static_cast<std::string>(robot_element_list[i]["color"]);
-            this->at(i) = new ImageSubscriber(nh_,robot_name);
+            this->at(i) = new ImageSubscriber(nh_,robot_name,img_topic_name);
         }
     }
 }
 
-void multi_localizer::ImageConnector::publish_img()
+void ImagesConnector::publish_img()
 {
     if(this->at(0)->get_img().empty()) return;
 
@@ -192,7 +122,7 @@ void multi_localizer::ImageConnector::publish_img()
     img_pub_.publish(img_msg);
 }
 
-void multi_localizer::ImageConnector::process()
+void ImagesConnector::process()
 {
     ros::Rate rate(HZ_);
     while(ros::ok()){
@@ -205,7 +135,7 @@ void multi_localizer::ImageConnector::process()
 int main(int argc,char** argv)
 {
     ros::init(argc,argv,"image_connector");
-    multi_localizer::ImageConnector image_connector;
+    ImagesConnector image_connector;
     image_connector.process();
     return 0;
 }

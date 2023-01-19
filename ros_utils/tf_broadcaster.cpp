@@ -1,68 +1,8 @@
-#include <ros/ros.h>
-#include <nav_msgs/Odometry.h>
-#include <tf2_ros/static_transform_broadcaster.h>
-#include <tf2_ros/transform_broadcaster.h>
-#include <tf2/utils.h>
+#include "utils/tf_broadcaster/tf_broadcaster.h"
 
-// Custom msg
-#include "object_detector_msgs/ObjectPositions.h"
-#include "object_color_detector_msgs/ObjectColorPositions.h"
+using namespace multi_localizer;
 
-namespace multi_localizer
-{
-class TFBroadcaster
-{
-public:
-    TFBroadcaster();
-    void process();
-
-private:
-    struct Pose
-    {
-        Pose() :
-            x(0.0), y(0.0), z(0.0),
-            roll(0.0), pitch(0.0), yaw(0.0) {}
-
-        Pose(double _x,double _y,double _z,double _roll,double _pitch,double _yaw) :
-            x(_x), y(_y), z(_z),
-            roll(_roll), pitch(_pitch), yaw(_yaw) {}
-
-        double x;
-        double y;
-        double z;
-        double roll;
-        double pitch;
-        double yaw;
-    };
-
-private:
-    void odom_callback(const nav_msgs::OdometryConstPtr& msg);
-    geometry_msgs::TransformStamped get_transfrom_stamped(std::string frame_id,std::string child_frame_id,Pose pose);
-
-    // node handler
-    ros::NodeHandle nh_;
-    ros::NodeHandle private_nh_;
-
-    // subscriber
-    ros::Subscriber odom_sub_;
-
-    // tf
-    boost::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_broadcaster_;
-    boost::shared_ptr<tf2_ros::TransformBroadcaster> broadcaster_;
-
-    // buffer
-    geometry_msgs::TransformStamped laser_transform_stamped_;
-    geometry_msgs::TransformStamped camera_transform_stamped_;
-
-    // parameters
-    std::string BASE_LINK_FRAME_ID_;
-    std::string LASER_FRAME_ID_;
-    std::string CAMERA_FRAME_ID_;
-};
-}
-
-multi_localizer::TFBroadcaster::TFBroadcaster() :
-    private_nh_("~")
+TFBroadcaster::TFBroadcaster() : private_nh_("~")
 {
     private_nh_.param("BASE_LINK_FRAME_ID",BASE_LINK_FRAME_ID_,{std::string("base_link")});
     private_nh_.param("LASER_FRAME_ID",LASER_FRAME_ID_,{std::string("laser")});
@@ -92,7 +32,7 @@ multi_localizer::TFBroadcaster::TFBroadcaster() :
     broadcaster_.reset(new tf2_ros::TransformBroadcaster);
 }
 
-void multi_localizer::TFBroadcaster::odom_callback(const nav_msgs::OdometryConstPtr& msg)
+void TFBroadcaster::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 {
     geometry_msgs::TransformStamped odom_transform;
     odom_transform.header =  msg->header;
@@ -104,7 +44,7 @@ void multi_localizer::TFBroadcaster::odom_callback(const nav_msgs::OdometryConst
     broadcaster_->sendTransform(odom_transform);
 }
 
-geometry_msgs::TransformStamped multi_localizer::TFBroadcaster::get_transfrom_stamped(std::string frame_id,std::string child_frame_id,Pose pose)
+geometry_msgs::TransformStamped TFBroadcaster::get_transfrom_stamped(std::string frame_id,std::string child_frame_id,Pose pose)
 {
     geometry_msgs::TransformStamped static_transform;
     static_transform.header.stamp = ros::Time::now();
@@ -123,7 +63,7 @@ geometry_msgs::TransformStamped multi_localizer::TFBroadcaster::get_transfrom_st
     return static_transform;
 }
 
-void multi_localizer::TFBroadcaster::process()
+void TFBroadcaster::process()
 {
     static_broadcaster_->sendTransform({laser_transform_stamped_, camera_transform_stamped_});
     ros::spin();
@@ -132,7 +72,7 @@ void multi_localizer::TFBroadcaster::process()
 int main(int argc,char** argv)
 {
     ros::init(argc,argv,"tf_broadcaster");
-    multi_localizer::TFBroadcaster tf_broadcaster;
+    TFBroadcaster tf_broadcaster;
     tf_broadcaster.process();
     return 0;
 }

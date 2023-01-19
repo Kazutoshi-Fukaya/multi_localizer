@@ -30,7 +30,7 @@ public:
     SemiDynamicObjects(ros::NodeHandle _private_nh) :
         private_nh_(_private_nh) { load_yaml(); }
 
-    std_msgs::ColorRGBA get_color(std::string name)
+    std_msgs::ColorRGBA get_color_msg(std::string name)
     {
         for(auto it = this->begin(); it != this->end(); it++){
             if(it->name_ == name) return set_color_msg(it->r_,it->g_,it->b_);

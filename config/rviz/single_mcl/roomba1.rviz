@@ -35,12 +35,12 @@ Visualization Manager:
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: false
+      Enabled: true
       Name: Map
       Topic: /map
       Unreliable: false
       Use Timestamp: false
-      Value: false
+      Value: true
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.10000000149011612
@@ -114,47 +114,6 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: false
-    - Alpha: 0.699999988079071
-      Class: rviz/Map
-      Color Scheme: map
-      Draw Behind: false
-      Enabled: true
-      Name: Map
-      Topic: /roomba1/local_map
-      Unreliable: false
-      Use Timestamp: false
-      Value: true
-    - Class: rviz/TF
-      Enabled: true
-      Frame Timeout: 15
-      Frames:
-        All Enabled: true
-        map:
-          Value: true
-        roomba1/base_link:
-          Value: true
-        roomba1/camera:
-          Value: true
-        roomba1/laser:
-          Value: true
-        roomba1/odom:
-          Value: true
-      Marker Alpha: 1
-      Marker Scale: 1
-      Name: TF
-      Show Arrows: true
-      Show Axes: true
-      Show Names: true
-      Tree:
-        map:
-          roomba1/odom:
-            roomba1/base_link:
-              roomba1/camera:
-                {}
-              roomba1/laser:
-                {}
-      Update Interval: 0
-      Value: true
     - Alpha: 1
       Arrow Length: 0.30000001192092896
       Axes Length: 0.30000001192092896
@@ -177,19 +136,24 @@ Visualization Manager:
       Marker Topic: /roomba1/obj_pose
       Name: MarkerArray
       Namespaces:
-        trash_can: true
+        {}
       Queue Size: 100
       Value: true
-    - Alpha: 0.699999988079071
-      Class: rviz/Map
-      Color Scheme: map
-      Draw Behind: false
-      Enabled: true
-      Name: Map
-      Topic: /latest_map_out
-      Unreliable: false
-      Use Timestamp: false
-      Value: true
+    - Class: rviz/TF
+      Enabled: false
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+      Marker Alpha: 1
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        {}
+      Update Interval: 0
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -226,9 +190,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: -0.985763430595398
+        Y: 0.0752316266298294
+        Z: 0.0009864442981779575
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -236,7 +200,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 6.273582935333252
+      Yaw: 6.27858304977417
     Saved: ~
 Window Geometry:
   Displays:

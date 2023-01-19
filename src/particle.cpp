@@ -1,13 +1,14 @@
 #include "mcl_base/mcl_base.h"
 
-multi_localizer::MCLBase::Particle::Particle(MCLBase* mcl) :
-    mcl_(mcl)
+using namespace multi_localizer;
+
+MCLBase::Particle::Particle(MCLBase* mcl) : mcl_(mcl)
 {
     mcl_->init_pose(pose_,0.0,0.0,0.0);
     weight_ = 1.0/(double)mcl_->PARTICLES_NUM;
 }
 
-void multi_localizer::MCLBase::Particle::set_pose(double x,double y,double yaw,double x_var,double y_var,double yaw_var)
+void MCLBase::Particle::set_pose(double x,double y,double yaw,double x_var,double y_var,double yaw_var)
 {
     double tmp_x = mcl_->get_gaussian(x,x_var);
     double tmp_y = mcl_->get_gaussian(y,y_var);
@@ -15,7 +16,7 @@ void multi_localizer::MCLBase::Particle::set_pose(double x,double y,double yaw,d
     mcl_->set_pose(pose_,tmp_x,tmp_y,tmp_yaw);
 }
 
-void multi_localizer::MCLBase::Particle::move(double dx,double dy,double dyaw)
+void MCLBase::Particle::move(double dx,double dy,double dyaw)
 {
     double yaw = tf2::getYaw(pose_.pose.orientation);
 

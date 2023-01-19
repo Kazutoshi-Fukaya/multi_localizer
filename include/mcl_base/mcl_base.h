@@ -136,6 +136,6 @@ protected:
     double ANGLE_TH_;
     double SELECTION_RATIO_;
 };
-}
+} // namespace multi_localizer
 
 #endif  // MCL_BASE_H_

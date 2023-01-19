@@ -1,65 +1,32 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="topic_name" default="detected_image" />
+    <arg name="roomba" default="roomba1" />
 
-    <!-- roomba1 -->
-    <arg name="is_roomba1" default="true" />
-    <group if="$(arg is_roomba1)" >
-        <node pkg="image_transport" type="republish" name="roomba1_republish" args="compressed raw" >
-            <remap from="in"  to="roomba1/$(arg topic_name)" />
-            <remap from="out" to="roomba1/$(arg topic_name)" />
+    <!-- theta_s -->
+    <arg name="unzip_theta_s" default="true" />
+    <group if="$(arg unzip_theta_s)" >
+        <node pkg="image_transport" type="republish" name="$(arg roomba)_theta_s_republish" args="compressed raw" >
+            <remap from="in"  to="$(arg roomba)/theta_s/image_raw" />
+            <remap from="out" to="$(arg roomba)/theta_s/image_raw" />
         </node>
     </group>
 
-    <!-- roomba2 -->
-    <arg name="is_roomba2" default="true" />
-    <group if="$(arg is_roomba2)" >
-        <node pkg="image_transport" type="republish" name="roomba2_republish" args="compressed raw" >
-            <remap from="in"  to="roomba2/$(arg topic_name)" />
-            <remap from="out" to="roomba2/$(arg topic_name)" />
+    <!-- rgb image -->
+    <arg name="unzip_rgb" default="true" />
+    <group if="$(arg unzip_rgb)" >
+        <node pkg="image_transport" type="republish" name="$(arg roomba)_color_republish" args="compressed raw" >
+            <remap from="in"  to="$(arg roomba)/camera/color/image_rect_color" />
+            <remap from="out" to="$(arg roomba)/camera/color/image_rect_color" />
         </node>
     </group>
 
-    <!-- roomba3 -->
-    <arg name="is_roomba3" default="true" />
-    <group if="$(arg is_roomba3)" >
-        <node pkg="image_transport" type="republish" name="roomba3_republish" args="compressed raw" >
-            <remap from="in"  to="roomba3/$(arg topic_name)" />
-            <remap from="out" to="roomba3/$(arg topic_name)" />
+    <!-- detected image -->
+    <arg name="unzip_detection" default="true" />
+    <group if="$(arg unzip_detection)" >
+        <node pkg="image_transport" type="republish" name="$(arg roomba)_detection_republish" args="compressed raw" >
+            <remap from="in"  to="$(arg roomba)/detected_image" />
+            <remap from="out" to="$(arg roomba)/detected_image" />
         </node>
-    </group>
-
-    <!-- roomba4 -->
-    <arg name="is_roomba4" default="true" />
-    <group if="$(arg is_roomba4)" >
-        <node pkg="image_transport" type="republish" name="roomba4_republish" args="compressed raw" >
-            <remap from="in"  to="roomba4/$(arg topic_name)" />
-            <remap from="out" to="roomba4/$(arg topic_name)" />
-        </node>
-    </group>
-
-    <!-- roomba5 -->
-    <arg name="is_roomba5" default="true" />
-    <group if="$(arg is_roomba5)" >
-        <node pkg="image_transport" type="republish" name="roomba5_republish" args="compressed raw" >
-            <remap from="in"  to="roomba5/$(arg topic_name)" />
-            <remap from="out" to="roomba5/$(arg topic_name)" />
-        </node>
-    </group>
-
-    <!-- roomba6 -->
-    <arg name="is_roomba6" default="true" />
-    <group if="$(arg is_roomba6)" >
-        <node pkg="image_transport" type="republish" name="roomba6_republish" args="compressed raw" >
-            <remap from="in"  to="roomba6/$(arg topic_name)" />
-            <remap from="out" to="roomba6/$(arg topic_name)" />
-        </node>
-    </group>
-
-    <!-- rviz -->
-    <arg name="is_rviz" default="false" />
-    <group if="$(arg is_rviz)" >
-        <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg config_path)/rviz/rviz/rviz.rviz" />
     </group>
 
 </launch>

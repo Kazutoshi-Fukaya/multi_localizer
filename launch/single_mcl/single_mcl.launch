@@ -5,11 +5,14 @@
     <arg name="date"        default="20220224" />
     <!-- <arg name="date"        default="20220630" /> -->
 
-    <!-- bag -->
+    <!-- rosbag -->
     <arg name="is_bag" default="true" />
     <group if="$(arg is_bag)" >
-        <arg name="file_path" default="$(env HOME)/bagfiles/experimental_file_$(arg date)" />
-        <node pkg="rosbag" type="play" name="$(arg roomba)_play" args=" $(arg file_path)/$(arg roomba).bag" />
+        <include file="$(find multi_localizer)/launch/utils/bag_player.launch" >
+            <arg name="roomba"    value="$(arg roomba)" />
+            <arg name="date"      value="$(arg date)" />
+            <arg name="wait_time" value="0.0" />
+        </include>
     </group>
 
     <!--map_server -->
@@ -18,8 +21,8 @@
         <node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/static_map.yaml" />
     </group>
 
-    <!-- tf -->
-    <include file="$(find multi_localizer)/launch/tf_broadcaster.launch" >
+    <!-- tf_broadcaster -->
+    <include file="$(find multi_localizer)/launch/utils/tf_broadcaster.launch" >
         <arg name="roomba" value="$(arg roomba)"/>
     </include>
 

@@ -8,7 +8,8 @@ SemiDynamicMapCreator::SemiDynamicMapCreator() :
     semi_dynamic_objects_(new SemiDynamicObjects(private_nh_))
 {
     private_nh_.param("LOCAL_MAP_FRAME_ID",LOCAL_MAP_FRAME_ID_,{std::string("base_link")});
-    private_nh_.param("HAS_REMOVED_POLE",HAS_REMOVED_POLE_,{true});
+    private_nh_.param("MAP_FRAME_ID",MAP_FRAME_ID_,{std::string("map")});
+	private_nh_.param("HAS_REMOVED_POLE",HAS_REMOVED_POLE_,{true});
     private_nh_.param("WIDTH",WIDTH_,{5});
     private_nh_.param("HEIGHT",HEIGHT_,{5});
     private_nh_.param("RANGE_STEP",RANGE_STEP_,{5});
@@ -26,10 +27,10 @@ SemiDynamicMapCreator::SemiDynamicMapCreator() :
 
     map_pub_ = nh_.advertise<nav_msgs::OccupancyGrid>("map_out",1);
     latest_map_pub_ = nh_.advertise<nav_msgs::OccupancyGrid>("latest_map_out",1);
-    obs_pub_ = nh_.advertise<geometry_msgs::PoseArray>("obs_out",1);
-    markers_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("obj_out",1);
+    obs_pub_ = nh_.advertise<geometry_msgs::PoseArray>("obs_out",1);   
+	markers_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("obj_out",1);
 
-    obstacle_poses_.header.frame_id = LOCAL_MAP_FRAME_ID_;
+	obs_poses_.header.frame_id = MAP_FRAME_ID_;
     generate_map();
 }
 
@@ -39,7 +40,7 @@ void SemiDynamicMapCreator::lsr_callback(const sensor_msgs::LaserScanConstPtr& m
     init_map();
     update_map();
     map_pub_.publish(local_map_);
-    obs_pub_.publish(obstacle_poses_);
+    obs_pub_.publish(obs_poses_);
 }
 
 void SemiDynamicMapCreator::pose_callback(const geometry_msgs::PoseStampedConstPtr& msg)
@@ -59,7 +60,7 @@ void SemiDynamicMapCreator::obj_callback(const object_detector_msgs::ObjectPosit
         for(const auto &obj_pos : filtered_msg.object_position){
             visualization_msgs::Marker marker;
             // setup
-            marker.header.frame_id = "map";
+            marker.header.frame_id = MAP_FRAME_ID_;
             marker.header.stamp = ros::Time::now();
             marker.type = visualization_msgs::Marker::CUBE;
             marker.type = visualization_msgs::Marker::ADD;
@@ -73,19 +74,15 @@ void SemiDynamicMapCreator::obj_callback(const object_detector_msgs::ObjectPosit
             double dist = std::sqrt(obj_pos.x*obj_pos.x + obj_pos.z*obj_pos.z);
             double angle = std::atan2(obj_pos.z,obj_pos.x) - 0.5*M_PI;
             marker.ns = obj_pos.Class;
-            marker.pose.position.x = pose_.pose.position.x + dist*std::cos(tf2::getYaw(pose_.pose.orientation) + angle);
-            marker.pose.position.y = pose_.pose.position.y + dist*std::sin(tf2::getYaw(pose_.pose.orientation) + angle);
-            marker.pose.position.z = 0.0;
-            marker.pose.orientation.x = 0.0;
-            marker.pose.orientation.y = 0.0;
-            marker.pose.orientation.z = 0.0;
-            marker.pose.orientation.w = 1.0;
-            marker.color = semi_dynamic_objects_->get_color(obj_pos.Class);
+            double tmp_x = pose_.pose.position.x + dist*std::cos(tf2::getYaw(pose_.pose.orientation) + angle);
+            double tmp_y = pose_.pose.position.y + dist*std::sin(tf2::getYaw(pose_.pose.orientation) + angle);
+			marker.pose = get_pose_msg(tmp_x,tmp_y);
+			marker.color = semi_dynamic_objects_->get_color_msg(obj_pos.Class);
             marker.color.a = obj_pos.probability;
             markers.markers.emplace_back(marker);
             marker_id++;
         }
-        update_latest_map(markers,obstacle_poses_);
+        update_latest_map(markers);
         markers_pub_.publish(markers);
         has_received_pose_ = false;
     }
@@ -122,7 +119,7 @@ void SemiDynamicMapCreator::init_map()
 
 void SemiDynamicMapCreator::update_map()
 {
-    obstacle_poses_.poses.clear();
+	obs_poses_.poses.clear();
     for(size_t i = 0; i < lsr_.ranges.size(); i += RANGE_STEP_){
         double angle = i*lsr_.angle_increment + lsr_.angle_min;
         input_to_map(angle,lsr_.ranges[i]);
@@ -143,11 +140,11 @@ void SemiDynamicMapCreator::input_to_map(double angle,double lsr_range)
 
         if(d >= lsr_range){
             local_map_.data[coordinate_to_map_index(search_x,search_y)] = 100;
-            geometry_msgs::Pose obstacle_pose;
-            obstacle_pose.position.x = search_x;
-            obstacle_pose.position.y = search_y;
-            obstacle_poses_.poses.emplace_back(obstacle_pose);
-            return;
+			geometry_msgs::Pose obs_pose;
+			double tmp_x = pose_.pose.position.x + d*std::cos(angle + tf2::getYaw(pose_.pose.orientation));
+			double tmp_y = pose_.pose.position.y + d*std::sin(angle + tf2::getYaw(pose_.pose.orientation));
+			obs_poses_.poses.emplace_back(get_pose_msg(tmp_x,tmp_y));
+			return;
         }
         else{
             local_map_.data[coordinate_to_map_index(search_x,search_y)] = 0;
@@ -186,14 +183,14 @@ void SemiDynamicMapCreator::filter_ops_msg(object_detector_msgs::ObjectPositions
     }
 }
 
-void SemiDynamicMapCreator::update_latest_map(visualization_msgs::MarkerArray obj_poses,
-                                              geometry_msgs::PoseArray obs_poses)
+void SemiDynamicMapCreator::update_latest_map(visualization_msgs::MarkerArray obj_poses)
 {
-    for(const auto &obj_pos : obj_poses.markers){
-        // geometry_msgs::PoseArray obs_poses = get_obs(obj_pos.pose,obstacle_poses_);
+    for(auto &obj_pos : obj_poses.markers){
+		geometry_msgs::PoseArray obs_poses = get_obs(obj_pos.pose);
         // std::cout << obs_poses.poses.size() << std::endl;
         // add_map_pose(obs_poses);
-        double range = 0.2;
+		/*
+		double range = 0.2;
         double range_step = 0.01;
         for(double x = obj_pos.pose.position.x - range; x < obj_pos.pose.position.x + range; x += range_step){
             for(double y = obj_pos.pose.position.y - range; y < obj_pos.pose.position.y + range; y += range_step){
@@ -203,6 +200,7 @@ void SemiDynamicMapCreator::update_latest_map(visualization_msgs::MarkerArray ob
                 latest_map_.data[index] = 100;
             }
         }
+		*/
     }
 }
 
@@ -216,18 +214,31 @@ void SemiDynamicMapCreator::add_map_pose(geometry_msgs::PoseArray obs_poses)
     }
 }
 
-geometry_msgs::PoseArray SemiDynamicMapCreator::get_obs(geometry_msgs::Pose pose,
-                                                        geometry_msgs::PoseArray poses)
+geometry_msgs::PoseArray SemiDynamicMapCreator::get_obs(geometry_msgs::Pose pose)
 {
     geometry_msgs::PoseArray obs_poses;
-    // obs_poses.header = obstacle_poses_.header;
-    for(size_t i = 0; i < poses.poses.size(); i++){
-        double diff_x = poses.poses[i].position.x + pose_.pose.position.x - pose.position.x;
-        double diff_y = poses.poses[i].position.y + pose_.pose.position.y - pose.position.y;
+    obs_poses.header = obs_poses_.header;
+	std::cout << obs_poses_.poses.size() << std::endl;
+    for(size_t i = 0; i < obs_poses_.poses.size(); i++){
+        double diff_x = obs_poses_.poses[i].position.x - pose.position.x;
+        double diff_y = obs_poses_.poses[i].position.y - pose.position.y;
         double diff = std::sqrt(diff_x*diff_x + diff_y*diff_y);
-        if(diff < 0.5) obs_poses.poses.emplace_back(poses.poses[i]);
+        if(diff < 0.5) obs_poses.poses.emplace_back(obs_poses_.poses[i]);
     }
     return obs_poses;
+}
+
+geometry_msgs::Pose SemiDynamicMapCreator::get_pose_msg(double x,double y)
+{
+	geometry_msgs::Pose pose;
+	pose.position.x = x;
+	pose.position.y = y;
+	pose.position.z = 0.0;
+	pose.orientation.x = 0.0;
+	pose.orientation.y = 0.0;
+	pose.orientation.z = 0.0;
+	pose.orientation.w = 1.0;
+	return pose;
 }
 
 bool SemiDynamicMapCreator::is_pole(double angle)

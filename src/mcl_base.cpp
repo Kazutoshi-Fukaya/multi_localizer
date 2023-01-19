@@ -1,6 +1,8 @@
 #include "mcl_base/mcl_base.h"
 
-multi_localizer::MCLBase::MCLBase() :
+using namespace multi_localizer;
+
+MCLBase::MCLBase() :
     private_nh_("~"), engine_(seed_()),
     has_received_odom_(false), is_update_(false),
     x_var_(0.0), y_var_(0.0), yaw_var_(0.0),
@@ -23,7 +25,7 @@ multi_localizer::MCLBase::MCLBase() :
     }
 }
 
-void multi_localizer::MCLBase::odom_callback(const nav_msgs::OdometryConstPtr& msg)
+void MCLBase::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 {
     if(IS_TF_){
         geometry_msgs::TransformStamped transform_stamped;
@@ -53,15 +55,15 @@ void multi_localizer::MCLBase::odom_callback(const nav_msgs::OdometryConstPtr& m
     has_received_odom_ = true;
 }
 
-void multi_localizer::MCLBase::observation_update() {}
+void MCLBase::observation_update() {}
 
-void multi_localizer::MCLBase::publish_tf() {}
+void MCLBase::publish_tf() {}
 
-bool multi_localizer::MCLBase::is_start() { return true; }
+bool MCLBase::is_start() { return true; }
 
-double multi_localizer::MCLBase::get_weight(geometry_msgs::PoseStamped& pose) { return 0.0; }
+double MCLBase::get_weight(geometry_msgs::PoseStamped& pose) { return 0.0; }
 
-void multi_localizer::MCLBase::init()
+void MCLBase::init()
 {
     set_particles(INIT_X_,INIT_Y_,INIT_YAW_,INIT_X_VAR_,INIT_Y_VAR_,INIT_YAW_VAR_);
     init_pose(previous_odom_,0.0,0.0,0.0);
@@ -69,13 +71,13 @@ void multi_localizer::MCLBase::init()
     init_pose(estimated_pose_,INIT_X_,INIT_Y_,INIT_YAW_);
 }
 
-void multi_localizer::MCLBase::init_pose(geometry_msgs::PoseStamped& pose,double x,double y,double yaw)
+void MCLBase::init_pose(geometry_msgs::PoseStamped& pose,double x,double y,double yaw)
 {
     pose.header.frame_id = MAP_FRAME_ID_;
     set_pose(pose,x,y,yaw);
 }
 
-void multi_localizer::MCLBase::set_pose(geometry_msgs::PoseStamped& pose,double x,double y,double yaw)
+void MCLBase::set_pose(geometry_msgs::PoseStamped& pose,double x,double y,double yaw)
 {
     pose.pose.position.x = x;
     pose.pose.position.y = y;
@@ -83,7 +85,7 @@ void multi_localizer::MCLBase::set_pose(geometry_msgs::PoseStamped& pose,double 
     pose.pose.orientation = get_quat_msg_from_yaw(yaw);
 }
 
-void multi_localizer::MCLBase::set_particles(double x,double y,double yaw,double x_var,double y_var,double yaw_var)
+void MCLBase::set_particles(double x,double y,double yaw,double x_var,double y_var,double yaw_var)
 {
     std::vector<Particle> tmp_particles;
     for(int i = 0; i < PARTICLES_NUM; i++){
@@ -94,7 +96,7 @@ void multi_localizer::MCLBase::set_particles(double x,double y,double yaw,double
     particles_ = tmp_particles;
 }
 
-void multi_localizer::MCLBase::motion_update()
+void MCLBase::motion_update()
 {
     double dx = current_odom_.pose.position.x - previous_odom_.pose.position.x;
     double dy = current_odom_.pose.position.y - previous_odom_.pose.position.y;
@@ -112,14 +114,14 @@ void multi_localizer::MCLBase::motion_update()
     for(auto &p : particles_) p.move(dx,dy,dyaw);
 }
 
-void multi_localizer::MCLBase::normalize_particles_weight()
+void MCLBase::normalize_particles_weight()
 {
     double weight_sum = get_particle_weight_sum();
     weight_average_ = weight_sum/PARTICLES_NUM;
     for(auto &p : particles_) p.weight_ /= weight_sum;
 }
 
-void multi_localizer::MCLBase::calc_weight_params()
+void MCLBase::calc_weight_params()
 {
     if(weight_average_ ==  0 || std::isnan(weight_average_)){
         weight_average_ = 1 / (double)PARTICLES_NUM;
@@ -142,7 +144,7 @@ void multi_localizer::MCLBase::calc_weight_params()
     }
 }
 
-void multi_localizer::MCLBase::resample_particles()
+void MCLBase::resample_particles()
 {
     double weight;
     if((1 - weight_fast_/weight_slow_) > 0) weight = 1 - weight_fast_/weight_slow_;
@@ -174,12 +176,12 @@ void multi_localizer::MCLBase::resample_particles()
     particles_ = tmp_particles;
 }
 
-void multi_localizer::MCLBase::sort_by_particle_weight()
+void MCLBase::sort_by_particle_weight()
 {
     std::sort(particles_.begin(),particles_.end(),[](const Particle& x,const Particle& y){ return x.weight_ > y.weight_; });
 }
 
-void multi_localizer::MCLBase::calc_estimated_pose()
+void MCLBase::calc_estimated_pose()
 {
     double tmp_est_x = 0.0;
     double tmp_est_y = 0.0;
@@ -195,7 +197,7 @@ void multi_localizer::MCLBase::calc_estimated_pose()
     set_pose(estimated_pose_,tmp_est_x,tmp_est_y,tmp_est_yaw);
 }
 
-void multi_localizer::MCLBase::calc_variance()
+void MCLBase::calc_variance()
 {
     double x_average = 0.0;
     double y_average = 0.0;
@@ -222,7 +224,7 @@ void multi_localizer::MCLBase::calc_variance()
     yaw_var_ = std::sqrt(yaw_rss/(double)PARTICLES_NUM);
 }
 
-void multi_localizer::MCLBase::publish_particle_poses()
+void MCLBase::publish_particle_poses()
 {
     geometry_msgs::PoseArray poses;
     poses.header.frame_id = MAP_FRAME_ID_;
@@ -231,15 +233,15 @@ void multi_localizer::MCLBase::publish_particle_poses()
     poses_pub_.publish(poses);
 }
 
-void multi_localizer::MCLBase::publish_estimated_pose()
+void MCLBase::publish_estimated_pose()
 {
     estimated_pose_.header.stamp = ros::Time::now();
     pose_pub_.publish(estimated_pose_);
 }
 
-multi_localizer::MCLBase::Particle multi_localizer::MCLBase::generate_particle() { return multi_localizer::MCLBase::Particle(this); }
+MCLBase::Particle MCLBase::generate_particle() { return MCLBase::Particle(this); }
 
-geometry_msgs::Quaternion multi_localizer::MCLBase::get_quat_msg_from_yaw(double yaw)
+geometry_msgs::Quaternion MCLBase::get_quat_msg_from_yaw(double yaw)
 {
     geometry_msgs::Quaternion quat_msg;
     tf2::Quaternion tf_q;
@@ -251,7 +253,7 @@ geometry_msgs::Quaternion multi_localizer::MCLBase::get_quat_msg_from_yaw(double
     return quat_msg;
 }
 
-bool multi_localizer::MCLBase::is_dense()
+bool MCLBase::is_dense()
 {
     if(x_var_ < LOWER_X_VAR_TH_ || y_var_ < LOWER_Y_VAR_TH_ || yaw_var_ < LOWER_YAW_VAR_TH_){
         x_var_ = INIT_X_VAR_;
@@ -262,7 +264,7 @@ bool multi_localizer::MCLBase::is_dense()
     return false;
 }
 
-bool multi_localizer::MCLBase::is_spread()
+bool MCLBase::is_spread()
 {
     if(x_var_ > UPPER_X_VAR_TH_ || y_var_ > UPPER_Y_VAR_TH_ || yaw_var_ > UPPER_YAW_VAR_TH_){
         x_var_ = INIT_X_VAR_;
@@ -273,13 +275,13 @@ bool multi_localizer::MCLBase::is_spread()
     return false;
 }
 
-double multi_localizer::MCLBase::get_gaussian(double mu,double sigma)
+double MCLBase::get_gaussian(double mu,double sigma)
 {
     std::normal_distribution<> n_dist(mu,sigma);
     return n_dist(engine_);
 }
 
-double multi_localizer::MCLBase::get_angle_diff(double a,double b)
+double MCLBase::get_angle_diff(double a,double b)
 {
     double a_angle = std::atan2(std::sin(a),std::cos(a));
     double b_angle = std::atan2(std::sin(b),std::cos(b));
@@ -292,12 +294,12 @@ double multi_localizer::MCLBase::get_angle_diff(double a,double b)
     else return d2;
 }
 
-double multi_localizer::MCLBase::get_particle_weight_sum()
+double MCLBase::get_particle_weight_sum()
 {
     return std::accumulate(particles_.begin(),particles_.end(),0.0L,[](double l,Particle& p) { return l + p.weight_; });
 }
 
-double multi_localizer::MCLBase::get_max_particle_weight()
+double MCLBase::get_max_particle_weight()
 {
     int max_index = std::distance(particles_.begin(),std::max_element(particles_.begin(),particles_.end(),[](const Particle& x,const Particle& y){ return x.weight_ < y.weight_; }));
     return particles_[max_index].weight_;

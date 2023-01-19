@@ -55,6 +55,6 @@ private:
 
     ros::NodeHandle private_nh_;
 };
-}
+} // namespace multi_localizer
 
 #endif  // ROBOT_NAME_H_

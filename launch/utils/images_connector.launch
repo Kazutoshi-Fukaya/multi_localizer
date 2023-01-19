@@ -13,18 +13,15 @@
     <arg name="is_roomba6"  default="true" />
 
     <!--map_server -->
-    <arg name="is_map" default="false" />
+    <arg name="is_map" default="true" />
     <group if="$(arg is_map)" >
-        <node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/spare/map.yaml" />
+        <node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/static_map.yaml" />
     </group>
 
-    <!-- bag -->
+    <!-- ros bag -->
     <arg name="is_bag" default="false" />
     <group if="$(arg is_bag)" >
         <include file="$(find multi_localizer)/launch/utils/$(arg date).launch" >
-            <arg name="is_map"     value="false" />
-            <arg name="is_rviz"    value="false" />
-
             <!-- roomba -->
             <arg name="is_roomba1" value="$(arg is_roomba1)" />
             <arg name="is_roomba2" value="$(arg is_roomba2)" />
@@ -35,25 +32,12 @@
         </include>
     </group>
 
-    <!-- image_unzipper -->
-    <arg name="is_unzip" default="true" />
-    <group if="$(arg is_unzip)" >
-        <include file="$(find multi_localizer)/launch/utils/image_unzipper.launch" >
-            <arg name="topic_name" value="detected_image" />
-            <arg name="is_rviz"    value="false" />
-
-            <!-- roomba -->
-            <arg name="is_roomba1" value="$(arg is_roomba1)" />
-            <arg name="is_roomba2" value="$(arg is_roomba2)" />
-            <arg name="is_roomba3" value="$(arg is_roomba3)" />
-            <arg name="is_roomba4" value="$(arg is_roomba4)" />
-            <arg name="is_roomba5" value="$(arg is_roomba5)" />
-            <arg name="is_roomba6" value="$(arg is_roomba6)" />
-        </include>
-    </group>
-
-    <node pkg="multi_localizer" type="image_connector" name="image_connector" output="screen" >
+    <!-- images_connector -->
+    <node pkg="multi_localizer" type="images_connector" name="images_connector" output="screen" >
         <!-- param -->
+        <param name="IMG_TOPIC_NAME" value="detected_image" />
+
+        <!-- rosparam -->
         <rosparam command="load" file="$(arg config_path)/params/robot_element.yaml" />
     </node>
 
