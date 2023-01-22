@@ -63,11 +63,11 @@
     </include>
 
     <!-- multi_localizer -->
-    <arg name="use_ops_msg"      default="true" />
-    <arg name="use_ocps_msg"     default="false" />
-    <arg name="publish_database" default="true" />
-    <arg name="publish_obj_data" default="false" />
-    <arg name="is_record"        default="false" />
+    <arg name="use_object_detection" default="true" />
+    <arg name="use_ocps_msg"         default="false" />
+    <arg name="publish_database"     default="true" />
+    <arg name="publish_obj_data"     default="false" />
+    <arg name="is_record"            default="false" />
     <node pkg="multi_localizer" type="multi_localizer" name="$(arg roomba)_multi_localizer" output="screen" >
         <!-- remap -->
         <remap from="odom_in"   to="$(arg roomba)/roomba/odometry" />
@@ -78,14 +78,16 @@
         <remap from="objects"   to="$(arg roomba)/objects" />
         <remap from="obj_out"   to="$(arg roomba)/objects_data" />
 
-        <!-- params -->
+        <!-- mcl params -->
         <param name="IS_TF"                  value="true" />
-        <param name="USE_OPS_MSG"            value="$(arg use_ops_msg)" />
+        <param name="BASE_LINK_FRAME_ID"     value="$(arg roomba)/base_link" />
+
+
+        <!-- object detection -->
+        <param name="USE_OBJECT_DETECTION"   value="$(arg use_object_detection)" />
         <param name="USE_OCPS_MSG"           value="$(arg use_ocps_msg)" />
         <param name="PUBLISH_DATABASE"       value="$(arg publish_database)" />
         <param name="PUBLISH_OBJ_DATA"       value="$(arg publish_obj_data)" />
-        <param name="IS_RECORD"              value="$(arg is_record)" />
-        <param name="BASE_LINK_FRAME_ID"     value="$(arg roomba)/base_link" />
         <param name="INIT_OBJECTS_FILE_NAME" value="$(arg config_path)/init_info/$(arg date).csv" />
         <param name="RECORD_FILE_PATH"       value="$(find multi_localizer)/record/$(arg roomba)_" />
 

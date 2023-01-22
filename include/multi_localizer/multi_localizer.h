@@ -38,16 +38,16 @@ private:
     void observation_update();
     void publish_tf();
     bool is_start();
-    bool is_observation();
+    bool is_observation();  // no use
     double get_weight(geometry_msgs::PoseStamped& pose);
 
     // object detection
     void filter_ops_msg(object_detector_msgs::ObjectPositions input_ops,
                         object_detector_msgs::ObjectPositions& output_ops);
     void publish_objects_msg();
-    void observation_od_update();
-
+    bool is_od_observation();
     bool is_visible_range(object_detector_msgs::ObjectPosition op);
+    double get_od_weight(geometry_msgs::PoseStamped& pose);
 
     // utils
     double weight_func(double mu,double sigma);
@@ -69,13 +69,12 @@ private:
     PoseSubscribers* pose_subscribers_;
 
     // buffer
-    object_detector_msgs::ObjectPositions ops_;
+    object_detector_msgs::ObjectPositions od_;
     object_color_detector_msgs::ObjectColorPositions ocps_;
     geometry_msgs::PoseStamped ref_pose_;	// for recording
 
     // object detection params
-    bool USE_OPS_MSG_;
-    bool USE_OCPS_MSG_;
+    bool USE_OBJECT_DETECTION_;
     bool PUBLISH_DATABASE_;
     bool PUBLISH_OBJ_DATA_;
     double PROBABILITY_TH_;
@@ -83,6 +82,10 @@ private:
     double VISIBLE_UPPER_DISTANCE_;
     double ANGLE_OF_VIEW_;
     double DISTANCE_NOISE_;
+
+    // mutual recognition
+    bool USE_OCPS_MSG_;
+
 };
 } // namespace multi_localizer
 

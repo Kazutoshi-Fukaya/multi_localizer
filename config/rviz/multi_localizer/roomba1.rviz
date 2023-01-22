@@ -100,10 +100,19 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /roomba1/markers
+      Marker Topic: /roomba1/objects
       Name: MarkerArray
       Namespaces:
-        {}
+        bench: true
+        big_bench: true
+        chair: true
+        elevator: true
+        fire_extinguisher: true
+        fire_hydrant: true
+        kitchenette_icon: true
+        table: true
+        toilet_icon: true
+        trash_can: true
       Queue Size: 100
       Value: true
     - Class: rviz/Image

@@ -40,10 +40,10 @@ MultiLocalizer::MultiLocalizer() :
     private_nh_.param("ANGLE_OF_VIEW",ANGLE_OF_VIEW_,{86.0/180.0*M_PI});
     private_nh_.param("DISTANCE_NOISE",DISTANCE_NOISE_,{0.1});
 
-    private_nh_.param("USE_OPS_MSG",USE_OPS_MSG_,{true});
+    private_nh_.param("USE_OBJECT_DETECTION",USE_OBJECT_DETECTION_,{true});
     private_nh_.param("PUBLISH_DATABASE",PUBLISH_DATABASE_,{true});
     private_nh_.param("PUBLISH_OBJ_DATA",PUBLISH_OBJ_DATA_,{false});
-    if(USE_OPS_MSG_){
+    if(USE_OBJECT_DETECTION_){
         ops_sub_ = nh_.subscribe("ops_in",1,&MultiLocalizer::od_callback,this);
         object_map_->load_init_objects();
 
@@ -63,7 +63,7 @@ MultiLocalizer::MultiLocalizer() :
 
 MultiLocalizer::~MultiLocalizer() {}
 
-void MultiLocalizer::od_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg) { filter_ops_msg(*msg,ops_); }
+void MultiLocalizer::od_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg) { filter_ops_msg(*msg,od_); }
 
 void MultiLocalizer::ocd_callback(const object_color_detector_msgs::ObjectColorPositionsConstPtr& msg)
 {
@@ -79,8 +79,9 @@ void MultiLocalizer::ocd_callback(const object_color_detector_msgs::ObjectColorP
 
 void MultiLocalizer::observation_update()
 {
-    if(!is_observation()) return;
-    for(auto &p : particles_) p.weight_ = get_weight(p.pose_);
+    for(auto &p : particles_){
+        p.weight_ = get_weight(p.pose_);
+    }
     normalize_particles_weight();
     calc_weight_params();
 }
@@ -120,28 +121,33 @@ bool MultiLocalizer::is_start()
     return false;
 }
 
+// no use
+bool MultiLocalizer::is_observation() { return true; }
+
 double MultiLocalizer::get_weight(geometry_msgs::PoseStamped& pose)
 {
     double x = pose.pose.position.x;
     double y = pose.pose.position.y;
     double yaw = tf2::getYaw(pose.pose.orientation);
     double weight = 0.0;
-    if(USE_OPS_MSG_){
-        for(const auto & op : ops_.object_position){
+
+    if(is_od_observation()){
+        for(const auto & op : od_.object_position){
             double distance = std::sqrt(op.x*op.x + op.z*op.z);
             double angle = std::atan2(op.z,op.x) - 0.5*M_PI;
 
-            double sim;
+            
             double tmp_yaw = tf2::getYaw(estimated_pose_.pose.orientation);
             double tmp_x = estimated_pose_.pose.position.x + distance*std::cos(tmp_yaw + angle);
             double tmp_y = estimated_pose_.pose.position.y + distance*std::sin(tmp_yaw + angle);
-            Object nearest_object = object_map_->get_highly_similar_object(op.Class,tmp_x,tmp_y,sim);
+            double sim;
+            Object sim_object = object_map_->get_highly_similar_object(op.Class,tmp_x,tmp_y,sim);
             std::cout << "Object(sim): " << op.Class << "(" << sim << ")" <<  std::endl;
             if(sim > 0.0){
                 double hat_x = x + distance*std::cos(yaw + angle);
                 double hat_y = y + distance*std::sin(yaw + angle);
-                double error_x = hat_x - nearest_object.x;
-                double error_y = hat_y - nearest_object.y;
+                double error_x = hat_x - sim_object.x;
+                double error_y = hat_y - sim_object.y;
                 double sigma = DISTANCE_NOISE_*distance;
                 weight += weight_func(error_x,sigma)*weight_func(error_y,sigma);
             }
@@ -188,7 +194,7 @@ void MultiLocalizer::publish_objects_msg()
     data.pose.x = estimated_pose_.pose.position.x;
     data.pose.y = estimated_pose_.pose.position.y;
     data.pose.yaw = tf2::getYaw(estimated_pose_.pose.orientation);
-    for(const auto &op: ops_.object_position){
+    for(const auto &op: od_.object_position){
         multi_robot_msgs::ObjectData od;
         double distance = std::sqrt(op.x*op.x + op.z*op.z);
         double angle = std::atan2(op.z,op.x) - 0.5*M_PI;
@@ -200,24 +206,14 @@ void MultiLocalizer::publish_objects_msg()
         data.objects.emplace_back(od);
     }
     obj_pub_.publish(data);
-    ops_.object_position.clear();
+    od_.object_position.clear();
 }
 
-bool MultiLocalizer::is_observation()
+bool MultiLocalizer::is_od_observation()
 {
-    if(USE_OPS_MSG_ && USE_OCPS_MSG_){
-        if(ocps_.object_color_position.empty() && ocps_.object_color_position.empty()) return false;
-        else return true;
-    }
-    else if(USE_OCPS_MSG_){
-        if(ocps_.object_color_position.empty()) return false;
-        else return true;
-    }
-    else if(USE_OPS_MSG_){
-        if(ops_.object_position.empty()) return false;
-        else return true;
-    }
-    else return false;
+    if(!USE_OBJECT_DETECTION_) return false;
+    if(od_.object_position.empty()) return false;
+    return true;
 }
 
 bool MultiLocalizer::is_visible_range(object_detector_msgs::ObjectPosition op)
@@ -245,6 +241,53 @@ bool MultiLocalizer::is_visible_range(object_detector_msgs::ObjectPosition op)
     return false;
 }
 
+double MultiLocalizer::get_od_weight(geometry_msgs::PoseStamped& pose)
+{
+    double x = pose.pose.position.x;
+    double y = pose.pose.position.y;
+    double yaw = tf2::getYaw(pose.pose.orientation);
+    double weight = 0.0;
+    if(USE_OBJECT_DETECTION_){
+        for(const auto & op : od_.object_position){
+            double distance = std::sqrt(op.x*op.x + op.z*op.z);
+            double angle = std::atan2(op.z,op.x) - 0.5*M_PI;
+
+            double sim;
+            double tmp_yaw = tf2::getYaw(estimated_pose_.pose.orientation);
+            double tmp_x = estimated_pose_.pose.position.x + distance*std::cos(tmp_yaw + angle);
+            double tmp_y = estimated_pose_.pose.position.y + distance*std::sin(tmp_yaw + angle);
+            Object nearest_object = object_map_->get_highly_similar_object(op.Class,tmp_x,tmp_y,sim);
+            std::cout << "Object(sim): " << op.Class << "(" << sim << ")" <<  std::endl;
+            if(sim > 0.0){
+                double hat_x = x + distance*std::cos(yaw + angle);
+                double hat_y = y + distance*std::sin(yaw + angle);
+                double error_x = hat_x - nearest_object.x;
+                double error_y = hat_y - nearest_object.y;
+                double sigma = DISTANCE_NOISE_*distance;
+                weight += weight_func(error_x,sigma)*weight_func(error_y,sigma);
+            }
+        }
+    }
+    if(USE_OCPS_MSG_){
+        for(const auto &ocp : ocps_.object_color_position){
+            double distance = std::sqrt(ocp.x*ocp.x + ocp.z*ocp.z);
+            double angle = std::atan2(ocp.z,ocp.x) - 0.5*M_PI;
+            double tmp_robot_x = x + distance*std::cos(yaw + angle);
+            double tmp_robot_y = y + distance*std::sin(yaw + angle);
+
+            geometry_msgs::PoseStamped robot_pose;
+            if(pose_subscribers_->get_pose(ocp.color,robot_pose)){
+                double error_x = tmp_robot_x - robot_pose.pose.position.x;
+                double error_y = tmp_robot_y - robot_pose.pose.position.y;
+                double sigma = DISTANCE_NOISE_*distance;
+                weight += weight_func(error_x,sigma)*weight_func(error_y,sigma);
+            }
+        }
+        // ocps_.object_color_position.clear();
+    }
+    return weight;
+}
+
 double MultiLocalizer::weight_func(double mu,double sigma) { return std::exp(-0.5*mu*mu/(sigma*sigma))/(std::sqrt(2.0*M_PI*sigma*sigma)); }
 
 void MultiLocalizer::process()
@@ -267,18 +310,16 @@ void MultiLocalizer::process()
             if(is_update_){
                 resample_particles();
                 sort_by_particle_weight();
-                // calc_estimated_pose();
-                // calc_variance();
                 is_update_ = false;
             }
             calc_estimated_pose();
             calc_variance();
             publish_particle_poses();
             publish_estimated_pose();
-            if(USE_OPS_MSG_ && PUBLISH_OBJ_DATA_) publish_objects_msg();
+            if(USE_OBJECT_DETECTION_ && PUBLISH_OBJ_DATA_) publish_objects_msg();
             publish_tf();
         }
-        if(USE_OPS_MSG_ && PUBLISH_DATABASE_) object_map_->publish_markers();
+        if(USE_OBJECT_DETECTION_ && PUBLISH_DATABASE_) object_map_->publish_markers();
         has_received_odom_ = false;
         previous_odom_ = current_odom_;
         ros::spinOnce();
