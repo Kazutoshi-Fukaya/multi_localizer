@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="config_path" default="$(find multi_localizer)/config" />
+    <arg name="roomba"      default="roomba1" />
+
+    <!-- place_recognition -->
+    <include file="$(find place_recognition)/launch/place_recognition.launch" >
+        <arg name="roomba"       value="$(arg roomba)" />
+        <arg name="is_map"       value="true" />
+        <arg name="publish_img"  value="true" />
+        <arg name="publish_pose" value="false" />
+        <arg name="is_rviz"      value="false" />
+    </include>
+
+    <!-- tf_broadcaster -->
+    <include file="$(find multi_localizer)/launch/utils/tf_broadcaster.launch" >
+        <arg name="roomba" value="$(arg roomba)"/>
+    </include>
+
+    <!-- pr_localizer -->
+    <arg name="date"             default="20220630" />
+    <arg name="is_record"        default="false" />
+    <arg name="publish_obj_data" default="false" />
+    <node pkg="multi_localizer" type="pr_localizer" name="$(arg roomba)_pr_localizer"  >
+        <!-- remap -->
+        <remap from="odom_in"    to="$(arg roomba)/roomba/odometry" />
+        <remap from="pr_pose_in" to="$(arg roomba)/pr_pose" />
+        <remap from="pose_out"   to="$(arg roomba)/pose" />
+        <remap from="poses_out"  to="$(arg roomba)/poses" />
+
+        <!-- mcl base params -->
+        <param name="IS_TF"              value="true" />
+        <param name="BASE_LINK_FRAME_ID" value="$(arg roomba)/base_link" />
+
+        <!-- rosparams -->
+        <rosparam command="load" file="$(arg config_path)/params/single_mcl/$(arg date)/$(arg roomba).yaml" />
+    </node>
+
+    <!-- rviz -->
+    <arg name="is_rviz" default="true" />
+    <group if="$(arg is_rviz)" >
+        <arg name="rviz_wait_time" default="16.0" />
+        <node pkg="rviz" type="rviz" name="$(arg roomba)_rviz" args="-d $(arg config_path)/rviz/pr_localizer/$(arg roomba).rviz" launch-prefix="bash -c 'sleep $(arg rviz_wait_time); $0 $@'" />
+    </group>
+
+</launch>
