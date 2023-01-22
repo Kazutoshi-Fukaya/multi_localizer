@@ -17,6 +17,7 @@ public:
 	void process();
 
 private:
+	// callback (for pr_localizer)
 	void pr_callback(const place_recognition_msgs::PoseStampedConstPtr& msg);
 
 	// mcl base
@@ -26,6 +27,7 @@ private:
     bool is_observation();
     double get_weight(geometry_msgs::PoseStamped& pose);
 
+	// for pr localizer
 	double weight_func(double mu,double sigma);
 
 	// subscriber

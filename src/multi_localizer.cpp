@@ -1,9 +1,11 @@
-#include "object_localizer/object_localizer.h"
+#include "multi_localizer/multi_localizer.h"
 
-multi_localizer::ObjectLocalizer::ObjectLocalizer() :
+using namespace multi_localizer;
+
+MultiLocalizer::MultiLocalizer() :
     start_time_(ros::Time::now()),
     robot_name_list_(new RobotNameList(private_nh_)),
-    database_(new Database(nh_,private_nh_)),
+    object_map_(new ObjectMap(nh_,private_nh_)),
     pose_subscribers_(new PoseSubscribers(nh_,private_nh_))
 {
     private_nh_.param("HZ",HZ_,{10});
@@ -39,8 +41,8 @@ multi_localizer::ObjectLocalizer::ObjectLocalizer() :
     private_nh_.param("PUBLISH_DATABASE",PUBLISH_DATABASE_,{true});
     private_nh_.param("PUBLISH_OBJ_DATA",PUBLISH_OBJ_DATA_,{false});
     if(USE_OPS_MSG_){
-        ops_sub_ = nh_.subscribe("ops_in",1,&ObjectLocalizer::ops_callback,this);
-        database_->load_init_objects();
+        ops_sub_ = nh_.subscribe("ops_in",1,&MultiLocalizer::ops_callback,this);
+        object_map_->load_init_objects();
 
         if(PUBLISH_OBJ_DATA_){
             obj_pub_ = nh_.advertise<multi_robot_msgs::ObjectsData>("obj_out",1);
@@ -52,27 +54,27 @@ multi_localizer::ObjectLocalizer::ObjectLocalizer() :
 
     private_nh_.param("USE_OCPS_MSG",USE_OCPS_MSG_,{true});
     if(USE_OCPS_MSG_){
-        ocps_sub_ = nh_.subscribe("ocps_in",1,&ObjectLocalizer::ocps_callback,this);
+        ocps_sub_ = nh_.subscribe("ocps_in",1,&MultiLocalizer::ocps_callback,this);
         // pose_subscribers_->print_elements();
     }
 
     private_nh_.param("IS_RECORD",IS_RECORD_,{false});
     if(IS_RECORD_){
         recorder_ = new Recorder(private_nh_);
-        pose_sub_ = nh_.subscribe("pose_in",1,&ObjectLocalizer::pose_callback,this);
+        pose_sub_ = nh_.subscribe("pose_in",1,&MultiLocalizer::pose_callback,this);
     }
 
     init();
 }
 
-multi_localizer::ObjectLocalizer::~ObjectLocalizer()
+MultiLocalizer::~MultiLocalizer()
 {
     if(IS_RECORD_) recorder_->save_csv();
 }
 
-void multi_localizer::ObjectLocalizer::ops_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg) { filter_ops_msg(*msg,ops_); }
+void MultiLocalizer::ops_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg) { filter_ops_msg(*msg,ops_); }
 
-void multi_localizer::ObjectLocalizer::ocps_callback(const object_color_detector_msgs::ObjectColorPositionsConstPtr& msg)
+void MultiLocalizer::ocps_callback(const object_color_detector_msgs::ObjectColorPositionsConstPtr& msg)
 {
     ocps_ = *msg;
     for(const auto &ocp : ocps_.object_color_position){
@@ -84,7 +86,7 @@ void multi_localizer::ObjectLocalizer::ocps_callback(const object_color_detector
     std::cout <<  std::endl;
 }
 
-void multi_localizer::ObjectLocalizer::pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
+void MultiLocalizer::pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
 {
     double time = (ros::Time::now() - start_time_).toSec();
     ref_pose_.header = msg->header;
@@ -98,7 +100,7 @@ void multi_localizer::ObjectLocalizer::pose_callback(const geometry_msgs::PoseWi
                               tf2::getYaw(ref_pose_.pose.orientation));
 }
 
-void multi_localizer::ObjectLocalizer::observation_update()
+void MultiLocalizer::observation_update()
 {
     if(!is_observation()) return;
     if(IS_RECORD_){
@@ -112,7 +114,7 @@ void multi_localizer::ObjectLocalizer::observation_update()
     calc_weight_params();
 }
 
-void multi_localizer::ObjectLocalizer::publish_tf()
+void MultiLocalizer::publish_tf()
 {
     tf2::Quaternion q;
     q.setRPY(0.0,0.0,tf2::getYaw(estimated_pose_.pose.orientation));
@@ -141,13 +143,13 @@ void multi_localizer::ObjectLocalizer::publish_tf()
     broadcaster_->sendTransform(map_to_odom_transform);
 }
 
-bool multi_localizer::ObjectLocalizer::is_start()
+bool MultiLocalizer::is_start()
 {
     if(has_received_odom_) return true;
     return false;
 }
 
-double multi_localizer::ObjectLocalizer::get_weight(geometry_msgs::PoseStamped& pose)
+double MultiLocalizer::get_weight(geometry_msgs::PoseStamped& pose)
 {
     double x = pose.pose.position.x;
     double y = pose.pose.position.y;
@@ -166,7 +168,7 @@ double multi_localizer::ObjectLocalizer::get_weight(geometry_msgs::PoseStamped& 
             double tmp_yaw = tf2::getYaw(estimated_pose_.pose.orientation);
             double tmp_x = estimated_pose_.pose.position.x + distance*std::cos(tmp_yaw + angle);
             double tmp_y = estimated_pose_.pose.position.y + distance*std::sin(tmp_yaw + angle);
-            Object nearest_object = database_->get_highly_similar_object(op.Class,tmp_x,tmp_y,sim);
+            Object nearest_object = object_map_->get_highly_similar_object(op.Class,tmp_x,tmp_y,sim);
             std::cout << "Object(sim): " << op.Class << "(" << sim << ")" <<  std::endl;
             if(sim > 0.0){
                 double hat_x = x + distance*std::cos(yaw + angle);
@@ -198,7 +200,7 @@ double multi_localizer::ObjectLocalizer::get_weight(geometry_msgs::PoseStamped& 
     return weight;
 }
 
-void multi_localizer::ObjectLocalizer::filter_ops_msg(object_detector_msgs::ObjectPositions input_ops,
+void MultiLocalizer::filter_ops_msg(object_detector_msgs::ObjectPositions input_ops,
                                                       object_detector_msgs::ObjectPositions& output_ops)
 {
     output_ops.header = input_ops.header;
@@ -236,7 +238,7 @@ void multi_localizer::ObjectLocalizer::filter_ops_msg(object_detector_msgs::Obje
     }
 }
 
-void multi_localizer::ObjectLocalizer::publish_objects_msg()
+void MultiLocalizer::publish_objects_msg()
 {
     double weight = get_max_particle_weight();
     ros::Time now_time = ros::Time::now();
@@ -262,7 +264,7 @@ void multi_localizer::ObjectLocalizer::publish_objects_msg()
     ops_.object_position.clear();
 }
 
-bool multi_localizer::ObjectLocalizer::is_observation()
+bool MultiLocalizer::is_observation()
 {
     if(USE_OPS_MSG_ && USE_OCPS_MSG_){
         if(ocps_.object_color_position.empty() && ocps_.object_color_position.empty()) return false;
@@ -279,12 +281,12 @@ bool multi_localizer::ObjectLocalizer::is_observation()
     else return false;
 }
 
-void multi_localizer::ObjectLocalizer::process()
+void MultiLocalizer::process()
 {
 	ros::Rate rate(HZ_);
     while(ros::ok()){
         if(is_start()){
-            database_->all_objects_are_not_observed();
+            object_map_->all_objects_are_not_observed();
 
             if(is_dense() || is_spread()){
                 double tmp_x = estimated_pose_.pose.position.x;
@@ -310,7 +312,7 @@ void multi_localizer::ObjectLocalizer::process()
             if(USE_OPS_MSG_ && PUBLISH_OBJ_DATA_) publish_objects_msg();
             publish_tf();
         }
-        if(USE_OPS_MSG_ && PUBLISH_DATABASE_) database_->publish_markers();
+        if(USE_OPS_MSG_ && PUBLISH_DATABASE_) object_map_->publish_markers();
         has_received_odom_ = false;
         previous_odom_ = current_odom_;
         ros::spinOnce();
@@ -321,8 +323,8 @@ void multi_localizer::ObjectLocalizer::process()
 
 int main(int argc,char** argv)
 {
-    ros::init(argc,argv,"object_localizer");
-    multi_localizer::ObjectLocalizer object_localizer;
-    object_localizer.process();
+    ros::init(argc,argv,"multi_localizer");
+    MultiLocalizer multi_localizer;
+    multi_localizer.process();
     return 0;
 }

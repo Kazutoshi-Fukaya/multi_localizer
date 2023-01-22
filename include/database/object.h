@@ -8,10 +8,10 @@ class Object
 {
 public:
     Object() :
-        is_observed(false), time(0.0), credibility(0.0), x(0.0), y(0.0) {}
+        has_observed(false), time(0.0), credibility(0.0), x(0.0), y(0.0) {}
 
     Object(double _time,double _credibility,double _x,double _y) :
-        is_observed(false), time(_time), credibility(_credibility), x(_x), y(_y) {}
+        has_observed(false), time(_time), credibility(_credibility), x(_x), y(_y) {}
 
     double get_similarity(double _x,double _y)
     {
@@ -32,7 +32,7 @@ public:
                   << y << ")" << std::endl;
     }
 
-    bool is_observed;
+    bool has_observed;
     double time;
     double credibility;
     double dom;

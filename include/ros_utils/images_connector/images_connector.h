@@ -1,7 +1,7 @@
 #ifndef IMAGES_CONNECTOR_H_
 #define IMAGES_CONNECTOR_H_
 
-#include "utils/images_connector/image_subscriber.h"
+#include "ros_utils/images_connector/image_subscriber.h"
 
 namespace multi_localizer
 {

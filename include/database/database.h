@@ -26,7 +26,7 @@ public:
     Database(ros::NodeHandle _nh,ros::NodeHandle _private_nh) :
         nh_(_nh), private_nh_(_private_nh) { init(); }
 
-    void add_object(std::string name,Object object)
+    void add_init_object(std::string name,Object object)
     {
         for(auto it = this->begin(); it != this->end(); it++){
             if(it->first->name == name) it->second->add_object(object);
@@ -46,7 +46,7 @@ public:
                 marker.ns = it->first->name;
                 marker.pose = get_pose(sit->x,sit->y);
                 marker.color = it->first->get_color_msg();
-                if(sit->is_observed) marker.color.a = 1.0;
+                if(sit->has_observed) marker.color.a = 1.0;
                 else marker.color.a = 0.3;
                 markers.markers.emplace_back(marker);
                 marker_id++;
@@ -68,7 +68,7 @@ public:
                 double time = static_cast<double>(std::stod(strvec[1]));
                 double x = static_cast<double>(std::stod(strvec[2]));
                 double y = static_cast<double>(std::stod(strvec[3]));
-                add_object(name,Object(time,1.0,x,y));
+                add_init_object(name,Object(time,1.0,x,y));
             }
             catch(const std::invalid_argument& ex){
                 ROS_ERROR("invalid: %s", ex.what());
@@ -84,12 +84,12 @@ public:
     {
         for(auto it = this->begin(); it != this->end(); it++){
             for(auto sit = it->second->begin(); sit != it->second->end(); sit++){
-                sit->is_observed = false;
+                sit->has_observed = false;
             }
         }
     }
 
-    Object get_nearest_object(std::string name,double x,double y,double& sim)
+    Object get_highly_similar_object(std::string name,double x,double y,double& sim)
     {
         for(auto it = this->begin(); it != this->end(); it++){
             if(it->first->name == name){
@@ -120,7 +120,7 @@ private:
     void object_map_callback(const multi_robot_msgs::ObjectMapConstPtr& msg)
     {
         clear_objects_data();
-        for(const auto &o : msg->objects) add_object(o.name,Object(o.time,o.credibility,o.x,o.y));
+        for(const auto &o : msg->objects) add_init_object(o.name,Object(o.time,o.credibility,o.x,o.y));
     }
 
     void init()

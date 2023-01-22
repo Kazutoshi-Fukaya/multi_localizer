@@ -4,7 +4,7 @@
     <arg name="roomba"    default="roomba1" />
 
     <!-- tf -->
-    <include file="$(find multi_localizer)/launch/tf_broadcaster.launch" >
+    <include file="$(find multi_localizer)/launch/utils/tf_broadcaster.launch" >
         <arg name="roomba" value="$(arg roomba)"/>
     </include>
 
@@ -17,8 +17,8 @@
     <node pkg="multi_localizer" type="object_localizer" name="$(arg roomba)_object_localizer" >
         <!-- remap -->
         <remap from="odom_in"   to="$(arg roomba)/roomba/odometry" />
-        <remap from="ops_in"    to="$(arg roomba)/object_positions" />
-        <remap from="ocps_in"   to="$(arg roomba)/object_color_positions" />
+        <remap from="od_in"    to="$(arg roomba)/object_positions" />
+        <remap from="ocd_in"   to="$(arg roomba)/object_color_positions" />
         <remap from="pose_out"  to="$(arg roomba)/pose" />
         <remap from="poses_out" to="$(arg roomba)/poses" />
         <remap from="objects"   to="$(arg roomba)/objects" />

@@ -1,10 +1,12 @@
-#ifndef OBJECT_LOCALIZER_H_
-#define OBJECT_LOCALIZER_H_
+#ifndef MULTI_LOCALIZER_H_
+#define MULTI_LOCALIZER_H_
 
+// mcl base
 #include "mcl_base/mcl_base.h"
+
 #include "ros_utils/recorder/recorder.h"
 #include "ros_utils/robot_name_list/robot_name_list.h"
-#include "database/database.h"
+#include "utils/object_map/object_map.h"
 #include "pose_subscribers/pose_subscribers.h"
 
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
@@ -22,11 +24,11 @@
 
 namespace multi_localizer
 {
-class ObjectLocalizer : public MCLBase
+class MultiLocalizer : public MCLBase
 {
 public:
-    ObjectLocalizer();
-    ~ObjectLocalizer();
+    MultiLocalizer();
+    ~MultiLocalizer();
     void process();
 
 private:
@@ -59,7 +61,7 @@ private:
 
     // utility
     RobotNameList* robot_name_list_;
-    Database* database_;
+    ObjectMap* object_map_;
     PoseSubscribers* pose_subscribers_;
     Recorder* recorder_;
 
@@ -80,6 +82,6 @@ private:
     double ANGLE_OF_VIEW_;
     double DISTANCE_NOISE_;
 };
-}
+} // namespace multi_localizer
 
-#endif  // OBJECT_LOCALIZER_H_
+#endif  // MULTI_LOCALIZER_H_

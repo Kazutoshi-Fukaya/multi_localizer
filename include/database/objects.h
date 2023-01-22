@@ -29,8 +29,7 @@ public:
         }
         int max_index = std::distance(sim_list.begin(),std::max_element(sim_list.begin(),sim_list.end()));
         sim = sim_list[max_index];
-        this->at(max_index).is_observed = true;
-
+        this->at(max_index).has_observed = true;
         return this->at(max_index);
     }
 
