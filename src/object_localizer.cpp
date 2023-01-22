@@ -56,18 +56,18 @@ multi_localizer::ObjectLocalizer::ObjectLocalizer() :
         // pose_subscribers_->print_elements();
     }
 
-    private_nh_.param("IS_RECORD",IS_RECORD_,{false});
-    if(IS_RECORD_){
-        recorder_ = new Recorder(private_nh_);
-        pose_sub_ = nh_.subscribe("pose_in",1,&ObjectLocalizer::pose_callback,this);
-    }
+    // private_nh_.param("IS_RECORD",IS_RECORD_,{false});
+    // if(IS_RECORD_){
+        // recorder_ = new Recorder(private_nh_);
+        // pose_sub_ = nh_.subscribe("pose_in",1,&ObjectLocalizer::pose_callback,this);
+    // }
 
     init();
 }
 
 multi_localizer::ObjectLocalizer::~ObjectLocalizer()
 {
-    if(IS_RECORD_) recorder_->save_csv();
+    // if(IS_RECORD_) recorder_->save_csv();
 }
 
 void multi_localizer::ObjectLocalizer::ops_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg) { filter_ops_msg(*msg,ops_); }
@@ -84,29 +84,29 @@ void multi_localizer::ObjectLocalizer::ocps_callback(const object_color_detector
     std::cout <<  std::endl;
 }
 
-void multi_localizer::ObjectLocalizer::pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
-{
-    double time = (ros::Time::now() - start_time_).toSec();
-    ref_pose_.header = msg->header;
-    ref_pose_.pose = msg->pose.pose;
-    recorder_->add_trajectory(time,
-                              estimated_pose_.pose.position.x,
-                              estimated_pose_.pose.position.y,
-                              tf2::getYaw(estimated_pose_.pose.orientation),
-                              ref_pose_.pose.position.x,
-                              ref_pose_.pose.position.y,
-                              tf2::getYaw(ref_pose_.pose.orientation));
-}
+// void multi_localizer::ObjectLocalizer::pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
+// {
+//     double time = (ros::Time::now() - start_time_).toSec();
+//     ref_pose_.header = msg->header;
+//     ref_pose_.pose = msg->pose.pose;
+//     recorder_->add_trajectory(time,
+//                               estimated_pose_.pose.position.x,
+//                               estimated_pose_.pose.position.y,
+//                               tf2::getYaw(estimated_pose_.pose.orientation),
+//                               ref_pose_.pose.position.x,
+//                               ref_pose_.pose.position.y,
+//                               tf2::getYaw(ref_pose_.pose.orientation));
+// }
 
 void multi_localizer::ObjectLocalizer::observation_update()
 {
     if(!is_observation()) return;
-    if(IS_RECORD_){
-        double time = (ros::Time::now() - start_time_).toSec();
-        for(const auto &op : ops_.object_position){
-            recorder_->add_observation(time,op.Class);
-        }
-    }
+    // if(IS_RECORD_){
+    //     double time = (ros::Time::now() - start_time_).toSec();
+    //     for(const auto &op : ops_.object_position){
+    //         recorder_->add_observation(time,op.Class);
+    //     }
+    // }
     for(auto &p : particles_) p.weight_ = get_weight(p.pose_);
     normalize_particles_weight();
     calc_weight_params();

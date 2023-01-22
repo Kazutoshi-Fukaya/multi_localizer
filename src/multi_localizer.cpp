@@ -8,6 +8,7 @@ MultiLocalizer::MultiLocalizer() :
     object_map_(new ObjectMap(nh_,private_nh_)),
     pose_subscribers_(new PoseSubscribers(nh_,private_nh_))
 {
+    // MCL Base
     private_nh_.param("HZ",HZ_,{10});
     private_nh_.param("PARTICLES_NUM",PARTICLES_NUM,{2000});
     private_nh_.param("INIT_X",INIT_X_,{7.0});
@@ -31,6 +32,8 @@ MultiLocalizer::MultiLocalizer() :
     private_nh_.param("DISTANCE_TH",DISTANCE_TH_,{0.15});
     private_nh_.param("ANGLE_TH",ANGLE_TH_,{0.15});
     private_nh_.param("SELECTION_RATIO",SELECTION_RATIO_,{0.2});
+
+
     private_nh_.param("PROBABILITY_TH",PROBABILITY_TH_,{0.8});
     private_nh_.param("VISIBLE_LOWER_DISTANCE",VISIBLE_LOWER_DISTANCE_,{5.0});
     private_nh_.param("VISIBLE_UPPER_DISTANCE",VISIBLE_UPPER_DISTANCE_,{0.3});
@@ -41,40 +44,28 @@ MultiLocalizer::MultiLocalizer() :
     private_nh_.param("PUBLISH_DATABASE",PUBLISH_DATABASE_,{true});
     private_nh_.param("PUBLISH_OBJ_DATA",PUBLISH_OBJ_DATA_,{false});
     if(USE_OPS_MSG_){
-        ops_sub_ = nh_.subscribe("ops_in",1,&MultiLocalizer::ops_callback,this);
+        ops_sub_ = nh_.subscribe("ops_in",1,&MultiLocalizer::od_callback,this);
         object_map_->load_init_objects();
 
         if(PUBLISH_OBJ_DATA_){
             obj_pub_ = nh_.advertise<multi_robot_msgs::ObjectsData>("obj_out",1);
         }
-        // robot_name_list_->print_elements();
-        // database_->print_object_params();
-        // database_->print_elements();
     }
 
     private_nh_.param("USE_OCPS_MSG",USE_OCPS_MSG_,{true});
     if(USE_OCPS_MSG_){
-        ocps_sub_ = nh_.subscribe("ocps_in",1,&MultiLocalizer::ocps_callback,this);
-        // pose_subscribers_->print_elements();
+        ocps_sub_ = nh_.subscribe("ocps_in",1,&MultiLocalizer::ocd_callback,this);
     }
 
-    private_nh_.param("IS_RECORD",IS_RECORD_,{false});
-    if(IS_RECORD_){
-        recorder_ = new Recorder(private_nh_);
-        pose_sub_ = nh_.subscribe("pose_in",1,&MultiLocalizer::pose_callback,this);
-    }
 
     init();
 }
 
-MultiLocalizer::~MultiLocalizer()
-{
-    if(IS_RECORD_) recorder_->save_csv();
-}
+MultiLocalizer::~MultiLocalizer() {}
 
-void MultiLocalizer::ops_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg) { filter_ops_msg(*msg,ops_); }
+void MultiLocalizer::od_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg) { filter_ops_msg(*msg,ops_); }
 
-void MultiLocalizer::ocps_callback(const object_color_detector_msgs::ObjectColorPositionsConstPtr& msg)
+void MultiLocalizer::ocd_callback(const object_color_detector_msgs::ObjectColorPositionsConstPtr& msg)
 {
     ocps_ = *msg;
     for(const auto &ocp : ocps_.object_color_position){
@@ -86,29 +77,9 @@ void MultiLocalizer::ocps_callback(const object_color_detector_msgs::ObjectColor
     std::cout <<  std::endl;
 }
 
-void MultiLocalizer::pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
-{
-    double time = (ros::Time::now() - start_time_).toSec();
-    ref_pose_.header = msg->header;
-    ref_pose_.pose = msg->pose.pose;
-    recorder_->add_trajectory(time,
-                              estimated_pose_.pose.position.x,
-                              estimated_pose_.pose.position.y,
-                              tf2::getYaw(estimated_pose_.pose.orientation),
-                              ref_pose_.pose.position.x,
-                              ref_pose_.pose.position.y,
-                              tf2::getYaw(ref_pose_.pose.orientation));
-}
-
 void MultiLocalizer::observation_update()
 {
     if(!is_observation()) return;
-    if(IS_RECORD_){
-        double time = (ros::Time::now() - start_time_).toSec();
-        for(const auto &op : ops_.object_position){
-            recorder_->add_observation(time,op.Class);
-        }
-    }
     for(auto &p : particles_) p.weight_ = get_weight(p.pose_);
     normalize_particles_weight();
     calc_weight_params();
@@ -155,10 +126,6 @@ double MultiLocalizer::get_weight(geometry_msgs::PoseStamped& pose)
     double y = pose.pose.position.y;
     double yaw = tf2::getYaw(pose.pose.orientation);
     double weight = 0.0;
-    auto weight_func = [](double mu,double sigma) -> double
-    {
-        return std::exp(-0.5*mu*mu/(sigma*sigma))/(std::sqrt(2.0*M_PI*sigma*sigma));
-    };
     if(USE_OPS_MSG_){
         for(const auto & op : ops_.object_position){
             double distance = std::sqrt(op.x*op.x + op.z*op.z);
@@ -205,36 +172,8 @@ void MultiLocalizer::filter_ops_msg(object_detector_msgs::ObjectPositions input_
 {
     output_ops.header = input_ops.header;
     output_ops.object_position.clear();
-
-    auto is_visible_range = [this](object_detector_msgs::ObjectPosition op) -> bool
-    {
-        if(robot_name_list_->is_included(op.Class)) return false;
-        if(op.Class == "fire_extinguisher") return false;
-
-        // atode kesu
-        // if(op.Class == "chair") return false;
-        // if(op.Class == "table") return false;
-
-
-        if(op.probability <= PROBABILITY_TH_) return false;
-
-        double r_vertex_x = std::cos(0.5*(M_PI - ANGLE_OF_VIEW_));
-        double r_vertex_y = std::sin(0.5*(M_PI - ANGLE_OF_VIEW_));
-        double l_vertex_x = std::cos(0.5*(M_PI + ANGLE_OF_VIEW_));
-        double l_vertex_y = std::sin(0.5*(M_PI + ANGLE_OF_VIEW_));
-
-        double dist = std::sqrt(op.x*op.x + op.z*op.z);
-        if(VISIBLE_LOWER_DISTANCE_ < dist &&
-           dist < VISIBLE_UPPER_DISTANCE_){
-            double x = op.x;
-            double y = op.z;
-            if(r_vertex_x*y - x*r_vertex_y >= 0 && l_vertex_x*y - x*l_vertex_y <= 0) return true;
-        }
-        return false;
-    };
-
-    for(const auto &inp_op : input_ops.object_position){
-        if(is_visible_range(inp_op)) output_ops.object_position.emplace_back(inp_op);
+    for(const auto &p : input_ops.object_position){
+        if(is_visible_range(p)) output_ops.object_position.emplace_back(p);
     }
 }
 
@@ -280,6 +219,33 @@ bool MultiLocalizer::is_observation()
     }
     else return false;
 }
+
+bool MultiLocalizer::is_visible_range(object_detector_msgs::ObjectPosition op)
+{
+    if(robot_name_list_->is_included(op.Class)) return false;
+    if(op.Class == "fire_extinguisher") return false;
+
+    // atode kesu
+    // if(op.Class == "chair") return false;
+    // if(op.Class == "table") return false;
+
+    if(op.probability <= PROBABILITY_TH_) return false;
+
+    double r_vertex_x = std::cos(0.5*(M_PI - ANGLE_OF_VIEW_));
+    double r_vertex_y = std::sin(0.5*(M_PI - ANGLE_OF_VIEW_));
+    double l_vertex_x = std::cos(0.5*(M_PI + ANGLE_OF_VIEW_));
+    double l_vertex_y = std::sin(0.5*(M_PI + ANGLE_OF_VIEW_));
+
+    double dist = std::sqrt(op.x*op.x + op.z*op.z);
+    if(VISIBLE_LOWER_DISTANCE_ < dist && dist < VISIBLE_UPPER_DISTANCE_){
+        double x = op.x;
+        double y = op.z;
+        if(r_vertex_x*y - x*r_vertex_y >= 0 && l_vertex_x*y - x*l_vertex_y <= 0) return true;
+    }
+    return false;
+}
+
+double MultiLocalizer::weight_func(double mu,double sigma) { return std::exp(-0.5*mu*mu/(sigma*sigma))/(std::sqrt(2.0*M_PI*sigma*sigma)); }
 
 void MultiLocalizer::process()
 {

@@ -2,6 +2,7 @@
 
 using namespace multi_localizer;
 
+
 ObjectMap::ObjectMap() :
 	private_nh_("~") { init(); }
 

@@ -36,6 +36,7 @@ public:
     void print_object_params();
     void print_elements();
 
+
 private:
     void object_map_callback(const multi_robot_msgs::ObjectMapConstPtr& msg);
     

@@ -2,12 +2,12 @@
 #define OBJECT_LOCALIZER_H_
 
 #include "mcl_base/mcl_base.h"
-#include "ros_utils/recorder/recorder.h"
+// #include "ros_utils/recorder/recorder.h"
 #include "ros_utils/robot_name_list/robot_name_list.h"
 #include "database/database.h"
 #include "pose_subscribers/pose_subscribers.h"
 
-#include <geometry_msgs/PoseWithCovarianceStamped.h>
+// #include <geometry_msgs/PoseWithCovarianceStamped.h>
 
 // c++
 #include <random>
@@ -32,7 +32,7 @@ public:
 private:
     void ops_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg);
     void ocps_callback(const object_color_detector_msgs::ObjectColorPositionsConstPtr& msg);
-    void pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg);
+    // void pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg);
 
     void observation_update();
     void publish_tf();
@@ -49,7 +49,7 @@ private:
     ros::Subscriber ocps_sub_;
 
     // subscriber (for recording)
-    ros::Subscriber pose_sub_;
+    // ros::Subscriber pose_sub_;
 
     // publisher (for publishing obj data)
     ros::Publisher obj_pub_;
@@ -61,7 +61,7 @@ private:
     RobotNameList* robot_name_list_;
     Database* database_;
     PoseSubscribers* pose_subscribers_;
-    Recorder* recorder_;
+    // Recorder* recorder_;
 
     // buffer
     object_detector_msgs::ObjectPositions ops_;
@@ -73,7 +73,7 @@ private:
     bool USE_OCPS_MSG_;
     bool PUBLISH_DATABASE_;
     bool PUBLISH_OBJ_DATA_;
-    bool IS_RECORD_;
+    // bool IS_RECORD_;
     double PROBABILITY_TH_;
     double VISIBLE_LOWER_DISTANCE_;
     double VISIBLE_UPPER_DISTANCE_;

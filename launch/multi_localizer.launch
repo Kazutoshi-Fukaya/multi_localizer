@@ -76,7 +76,6 @@
         <remap from="pose_out"  to="$(arg roomba)/pose" />
         <remap from="poses_out" to="$(arg roomba)/poses" />
         <remap from="objects"   to="$(arg roomba)/objects" />
-        <remap from="pose_in"   to="$(arg roomba)/amcl_pose" />
         <remap from="obj_out"   to="$(arg roomba)/objects_data" />
 
         <!-- params -->

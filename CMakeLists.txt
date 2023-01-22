@@ -104,6 +104,10 @@ target_link_libraries(tf_broadcaster ${catkin_LIBRARIES})
 add_executable(amcl_pose_republisher ros_utils/amcl_pose_republisher.cpp)
 target_link_libraries(amcl_pose_republisher ${catkin_LIBRARIES})
 
+# recorder
+add_executable(recorder ros_utils/recorder.cpp)
+target_link_libraries(recorder ${catkin_LIBRARIES})
+
 # semi_dynamic_map_creator
 # add_executable(semi_dynamic_map_creator src/semi_dynamic_map_creator.cpp)
 # target_link_libraries(semi_dynamic_map_creator ${catkin_LIBRARIES})

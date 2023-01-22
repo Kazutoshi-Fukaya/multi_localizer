@@ -2,7 +2,7 @@
 #define SINGLE_MCL_H_
 
 #include "mcl_base/mcl_base.h"
-#include "ros_utils/recorder/recorder.h"
+// #include "ros_utils/recorder/recorder.h"
 
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <sensor_msgs/LaserScan.h>
@@ -24,12 +24,12 @@ public:
 private:
     void map_callback(const nav_msgs::OccupancyGridConstPtr& msg);
     void lsr_callback(const sensor_msgs::LaserScanConstPtr& msg);
-    void pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg);
-    void obj_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg);
+    // void pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg);
+    // void obj_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg);
 
     void observation_update();
     void publish_tf();
-    void record_pose();
+    // void record_pose();
     bool is_start();
     double get_weight(geometry_msgs::PoseStamped& pose);
 
@@ -40,14 +40,14 @@ private:
     ros::Subscriber lsr_sub_;
 
     // subscriber (for recording)
-    ros::Subscriber pose_sub_;
-    ros::Subscriber obj_sub_;
+    // ros::Subscriber pose_sub_;
+    // ros::Subscriber obj_sub_;
 
     // publish (for publishing objects data)
-    ros::Publisher obj_pub_;
+    // ros::Publisher obj_pub_;
 
     // recorder
-    Recorder* recorder_;
+    // Recorder* recorder_;
 
     // buffer
     ros::Time start_time_;
@@ -57,8 +57,8 @@ private:
     bool has_received_map_;
 
     // parameters
-    bool IS_RECORD_;
-    bool PUBLISH_OBJ_DATA_;
+    // bool IS_RECORD_;
+    // bool PUBLISH_OBJ_DATA_;
     int RANGE_STEP_;
     double MAX_RANGE_;
     double HIT_COV_;
