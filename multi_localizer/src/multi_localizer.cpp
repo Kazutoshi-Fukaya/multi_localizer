@@ -33,6 +33,7 @@ MultiLocalizer::MultiLocalizer() :
     // place recognition params
     private_nh_.param("USE_PLACE_RECOGNITION",USE_PLACE_RECOGNITION_,{true});
     if(USE_PLACE_RECOGNITION_){
+        std::cout << "USE_PLACE_RECOGNITION" << std::endl;
         private_nh_.param("ALPHA",ALPHA_,{0.7});
         private_nh_.param("ERROR_TH",ERROR_TH_,{1.5});
         private_nh_.param("SCORE_TH",SCORE_TH_,{0.6});
@@ -43,14 +44,14 @@ MultiLocalizer::MultiLocalizer() :
     // object detection params
     private_nh_.param("USE_OBJECT_DETECTION",USE_OBJECT_DETECTION_,{true});
     if(USE_OBJECT_DETECTION_){
+        std::cout << "USE_OBJECT_DETECTION" << std::endl;
         private_nh_.param("BETA",BETA_,{0.2});
         private_nh_.param("PROBABILITY_TH",PROBABILITY_TH_,{0.8});
         private_nh_.param("VISIBLE_LOWER_DISTANCE",VISIBLE_LOWER_DISTANCE_,{5.0});
         private_nh_.param("VISIBLE_UPPER_DISTANCE",VISIBLE_UPPER_DISTANCE_,{0.3});
         private_nh_.param("ANGLE_OF_VIEW",ANGLE_OF_VIEW_,{86.0/180.0*M_PI});
-        private_nh_.param("DISTANCE_NOISE",DISTANCE_NOISE_,{0.1});
         private_nh_.param("SIM_TH",SIM_TH_,{0.0});
-        
+
         robot_name_list_ = new RobotNameList(private_nh_);
         object_map_ = new ObjectMap();
         load_object_params(object_map_);
@@ -73,8 +74,14 @@ MultiLocalizer::MultiLocalizer() :
     // mutual recognition params
     private_nh_.param("USE_MUTUAL_RECOGNITION",USE_MUTUAL_RECOGNITION_,{false});
     if(USE_MUTUAL_RECOGNITION_){
+        std::cout << "USE_MUTUAL_RECOGNITION" << std::endl;
         pose_subscribers_ = new PoseSubscribers(nh_,private_nh_);
         ocd_sub_ = nh_.subscribe("ocd_in",1,&MultiLocalizer::ocd_callback,this);
+    }
+
+    // 
+    if(USE_OBJECT_DETECTION_ || USE_MUTUAL_RECOGNITION_){
+        private_nh_.param("DISTANCE_NOISE",DISTANCE_NOISE_,{0.1});
     }
 
     init();
@@ -86,23 +93,14 @@ void MultiLocalizer::pr_callback(const place_recognition_msgs::PoseStampedConstP
 
 void MultiLocalizer::od_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg) { filter_od_msg(*msg,od_); }
 
-void MultiLocalizer::ocd_callback(const object_color_detector_msgs::ObjectColorPositionsConstPtr& msg)
-{
-    ocd_ = *msg;
-    for(const auto &p : ocd_.object_color_position){
-        std::cout << "(Color,Dist,Angle): ("
-                  << p.color << ","
-                  << std::sqrt(p.x*p.x + p.z*p.z) << ","
-                  << std::atan2(p.z,p.x) - 0.5*M_PI << ")" << std::endl;
-    }
-    std::cout <<  std::endl;
-}
+void MultiLocalizer::ocd_callback(const object_color_detector_msgs::ObjectColorPositionsConstPtr& msg) { ocd_ = *msg; }
 
 void MultiLocalizer::observation_update()
 {
     for(auto &p : particles_){
         p.weight_ = get_weight(p.pose_);
     }
+    std::cout << "max weight: " << get_max_particle_weight() << std::endl;
     if(has_got_weight_){
         normalize_particles_weight();
         calc_weight_params();
@@ -161,11 +159,11 @@ double MultiLocalizer::get_weight(geometry_msgs::PoseStamped& pose)
         double diff_y = y - pr_pose_.y;
         double diff_theta = theta - pr_pose_.theta;
         double score = pr_pose_.score;
-        
+
         // position
         double dist = std::sqrt(diff_x*diff_x + diff_y*diff_y);
         weight += ALPHA_*weight_func(dist,score);
-        
+
         // theta
         weight += ALPHA_*weight_func(diff_theta,score);
         has_got_weight_ = true;
@@ -182,7 +180,7 @@ double MultiLocalizer::get_weight(geometry_msgs::PoseStamped& pose)
             double tmp_y = estimated_pose_.pose.position.y + distance*std::sin(tmp_yaw + angle);
             double sim;
             Object sim_object = object_map_->get_highly_similar_object(op.Class,tmp_x,tmp_y,sim);
-            std::cout << "Object(sim): " << op.Class << "(" << sim << ")" <<  std::endl;
+            // std::cout << "Object(sim): " << op.Class << "(" << sim << ")" <<  std::endl;
             if(sim > SIM_TH_){
                 double hat_x = x + distance*std::cos(theta + angle);
                 double hat_y = y + distance*std::sin(theta + angle);
@@ -203,16 +201,16 @@ double MultiLocalizer::get_weight(geometry_msgs::PoseStamped& pose)
             double tmp_robot_x = x + distance*std::cos(theta + angle);
             double tmp_robot_y = y + distance*std::sin(theta + angle);
 
-            geometry_msgs::PoseStamped robot_pose;
+            multi_localizer_msgs::RobotPoseStamped robot_pose;
             if(pose_subscribers_->get_pose(p.color,robot_pose)){
-                double error_x = tmp_robot_x - robot_pose.pose.position.x;
-                double error_y = tmp_robot_y - robot_pose.pose.position.y;
+                double error_x = tmp_robot_x - robot_pose.pose.x;
+                double error_y = tmp_robot_y - robot_pose.pose.y;
                 double sigma = DISTANCE_NOISE_*distance;
-                weight += weight_func(error_x,sigma)*weight_func(error_y,sigma);
+                weight += robot_pose.pose.weight*weight_func(error_x,sigma)*weight_func(error_y,sigma);
             }
         }
         has_got_weight_ = true;
-        // ocps_.object_color_position.clear();
+        // ocd_.object_color_position.clear();
     }
     return weight;
 }
@@ -221,13 +219,13 @@ bool MultiLocalizer::is_pr_observation()
 {
     if(!USE_PLACE_RECOGNITION_) return false;
     double diff_x = estimated_pose_.pose.position.x - pr_pose_.x;
-	double diff_y = estimated_pose_.pose.position.y - pr_pose_.y;
-	double dist = std::sqrt(diff_x*diff_x + diff_y*diff_y);
-	if(dist < ERROR_TH_) return true;
+    double diff_y = estimated_pose_.pose.position.y - pr_pose_.y;
+    double dist = std::sqrt(diff_x*diff_x + diff_y*diff_y);
+    if(dist < ERROR_TH_) return true;
     if(pr_pose_.score > SCORE_TH_){
         set_particles(pr_pose_.x,pr_pose_.y,pr_pose_.theta,INIT_X_VAR_,INIT_Y_VAR_,INIT_YAW_VAR_);
     }
-	return false;
+    return false;
 }
 
 void MultiLocalizer::load_object_params(ObjectMap* object_map)
@@ -263,7 +261,7 @@ void MultiLocalizer::load_object_params(ObjectMap* object_map)
             Objects* objects (new Objects());
             object_map->insert(std::map<ObjectParam*,Objects*>::value_type(object_param,objects));
         }
-    }    
+    }
 }
 
 void MultiLocalizer::load_init_objects(ObjectMap* object_map)
@@ -337,10 +335,10 @@ void MultiLocalizer::publish_markers()
     visualization_msgs::MarkerArray markers;
     int marker_id = 0;
     for(auto it = object_map_->begin(); it != object_map_->end(); it++){
-		for(auto sit = it->second->begin(); sit != it->second->end(); sit++){
+        for(auto sit = it->second->begin(); sit != it->second->end(); sit++){
             visualization_msgs::Marker marker;
             marker.header.frame_id = MAP_FRAME_ID_;
-			marker.header.stamp = ros::Time::now();
+            marker.header.stamp = ros::Time::now();
             marker.type = visualization_msgs::Marker::CUBE;
             marker.action = visualization_msgs::Marker::ADD;
             marker.lifetime = ros::Duration();
@@ -365,7 +363,7 @@ void MultiLocalizer::publish_markers()
             marker_id++;
         }
     }
-	markers_pub_.publish(markers);
+    markers_pub_.publish(markers);
 }
 
 bool MultiLocalizer::is_od_observation()
@@ -417,7 +415,7 @@ double MultiLocalizer::weight_func(double mu,double sigma) { return std::exp(-0.
 
 void MultiLocalizer::process()
 {
-	ros::Rate rate(HZ_);
+    ros::Rate rate(HZ_);
     while(ros::ok()){
         if(is_start()){
             if(USE_OBJECT_DETECTION_){
@@ -443,7 +441,7 @@ void MultiLocalizer::process()
             publish_particle_poses();
             publish_estimated_pose();
             if(USE_OBJECT_DETECTION_ && PUBLISH_OBJECTS_DATA_) publish_objects_data();
-            publish_tf();
+            if(IS_TF_) publish_tf();
         }
         if(USE_OBJECT_DETECTION_ && PUBLISH_MARKERS_) publish_markers();
         has_received_odom_ = false;

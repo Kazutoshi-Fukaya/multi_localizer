@@ -1,0 +1,100 @@
+#ifndef POSE_SUBSCRIBERS_H_
+#define POSE_SUBSCRIBERS_H_
+
+#include <tf2/utils.h>
+#include <map>
+
+#include "pose_subscribers/robot_element.h"
+#include "pose_subscribers/pose_subscriber.h"
+
+namespace relative_recognition_localizer
+{
+class PoseSubscribers : public std::map<RobotElement*,PoseSubscriber*>
+{
+public:
+    PoseSubscribers(ros::NodeHandle _nh,ros::NodeHandle _private_nh) :
+        nh_(_nh), private_nh_(_private_nh) { load_robot_element(); }
+
+    void set_received_flag(std::string color,bool flag)
+    {
+        for(auto it = this->begin(); it != this->end(); it++){
+            if(it->first->color == color)  return it->second->set_received_flag(flag);
+        }
+    }
+
+    std::string get_robot_name(std::string color)
+    {
+        for(auto it = this->begin(); it != this->end(); it++){
+            if(it->first->color == color)  return it->first->robot_name;
+        }
+        return std::string("");
+    }
+
+    std::string get_color(std::string robot_name)
+    {
+        for(auto it = this->begin(); it != this->end(); it++){
+            if(it->first->robot_name == robot_name) return it->first->color;
+        }
+        return std::string("");
+    }
+
+    bool get_pose(std::string color,multi_localizer_msgs::RobotPoseStamped& pose)
+    {
+        for(auto it = this->begin(); it != this->end(); it++){
+            if(it->first->color ==  color) return it->second->get_pose(pose);
+        }
+        return false;
+    }
+
+    void debug()
+    {
+        std::string color = "GREEN";
+        multi_localizer_msgs::RobotPoseStamped pose;
+        if(get_pose(color,pose)){
+            std::cout << " pose.x : " << pose.pose.x << std::endl;
+            std::cout << " pose.y : " << pose.pose.y << std::endl;
+            std::cout << "pose.yaw: " << pose.pose.theta << std::endl;
+        }
+        else{
+            std::cout << "No data" << std::endl;
+        }
+    }
+
+private:
+    void load_robot_element()
+    {
+        this->clear();
+        std::string robot_element_list_name;
+        private_nh_.param("ROBOT_ELEMENT_LIST",robot_element_list_name,{std::string("robot_element_list")});
+        XmlRpc::XmlRpcValue robot_element_list;
+        if(!private_nh_.getParam(robot_element_list_name.c_str(),robot_element_list)){
+            ROS_ERROR("Cloud not load %s", robot_element_list_name.c_str());
+            return;
+        }
+
+        ROS_ASSERT(robot_element_list.getType() == XmlRpc::XmlRpcValue::TypeArray);
+        for(int i = 0; i < (int)robot_element_list.size(); i++){
+            if(!robot_element_list[i]["robot_name"].valid() ||
+               !robot_element_list[i]["color"].valid()){
+                ROS_ERROR("%s is valid", robot_element_list_name.c_str());
+                return;
+            }
+            if(robot_element_list[i]["robot_name"].getType() == XmlRpc::XmlRpcValue::TypeString &&
+               robot_element_list[i]["color"].getType() == XmlRpc::XmlRpcValue::TypeString){
+                std::string robot_name = static_cast<std::string>(robot_element_list[i]["robot_name"]);
+                std::string color = static_cast<std::string>(robot_element_list[i]["color"]);
+                std::string  topic_name = robot_name + "/robot_pose";
+                RobotElement* robot_element (new RobotElement(robot_name,color));
+                PoseSubscriber* pose_subscriber (new PoseSubscriber(nh_,topic_name));
+                this->insert(std::map<RobotElement*,PoseSubscriber*>::value_type(robot_element,pose_subscriber));
+            }
+        }
+    }
+
+    // node handler
+    ros::NodeHandle nh_;
+    ros::NodeHandle private_nh_;
+};
+} // namespace relative_recognition_localizer
+
+#endif  // POSE_SUBSCRIBERS_H_

@@ -1,0 +1,18 @@
+robot_element_list:
+    - robot_name: roomba1
+      color: GREEN
+    
+    - robot_name: roomba2
+      color: YELLOW
+    
+    - robot_name: roomba3
+      color: BLUE
+    
+    - robot_name: roomba4
+      color: ORANGE
+    
+    - robot_name: roomba5
+      color: PURPLE
+    
+    - robot_name: roomba6
+      color: RED

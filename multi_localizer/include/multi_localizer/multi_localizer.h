@@ -8,10 +8,10 @@
 
 // ros utils
 #include "ros_utils/robot_name_list/robot_name_list.h"
+#include "ros_utils/pose_subscribers/pose_subscribers.h"
 
 // utils
 #include "utils/object_map/object_map.h"
-#include "pose_subscribers/pose_subscribers.h"
 
 // c++
 #include <random>
@@ -20,6 +20,7 @@
 
 // Custom msg
 #include "multi_localizer_msgs/ObjectsData.h"
+#include "multi_localizer_msgs/RobotPoseStamped.h"
 #include "object_detector_msgs/ObjectPositions.h"
 #include "object_color_detector_msgs/ObjectColorPositions.h"
 #include "place_recognition_msgs/PoseStamped.h"
@@ -77,7 +78,7 @@ private:
     // time
     ros::Time start_time_;
 
-    // utility
+    // ros utils
     RobotNameList* robot_name_list_;
     ObjectMap* object_map_;
     PoseSubscribers* pose_subscribers_;

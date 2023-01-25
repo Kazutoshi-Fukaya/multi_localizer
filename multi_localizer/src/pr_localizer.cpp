@@ -4,8 +4,8 @@ using namespace multi_localizer;
 
 PRLocalizer::PRLocalizer()
 {
-	// MCL Base
-	private_nh_.param("HZ",HZ_,{10});
+    // MCL Base
+    private_nh_.param("HZ",HZ_,{10});
     private_nh_.param("PARTICLES_NUM",PARTICLES_NUM,{2000});
     private_nh_.param("INIT_X",INIT_X_,{7.0});
     private_nh_.param("INIT_Y",INIT_Y_,{0.0});
@@ -29,8 +29,8 @@ PRLocalizer::PRLocalizer()
     private_nh_.param("ANGLE_TH",ANGLE_TH_,{0.15});
     private_nh_.param("SELECTION_RATIO",SELECTION_RATIO_,{0.2});
 
-	// multi_pr_localizer params
-	private_nh_.param("ERROR_TH",ERROR_TH_,{1.5});
+    // multi_pr_localizer params
+    private_nh_.param("ERROR_TH",ERROR_TH_,{1.5});
     private_nh_.param("SCORE_TH",SCORE_TH_,{0.6});
 
     pr_pose_sub_ = nh_.subscribe("pr_pose_in",1,&PRLocalizer::pr_callback,this);
@@ -44,15 +44,15 @@ void PRLocalizer::pr_callback(const place_recognition_msgs::PoseStampedConstPtr&
 
 void PRLocalizer::observation_update()
 {
-	if(!is_observation()) return;
-	for(auto &p : particles_) p.weight_ = get_weight(p.pose_);
+    if(!is_observation()) return;
+    for(auto &p : particles_) p.weight_ = get_weight(p.pose_);
     normalize_particles_weight();
     calc_weight_params();
 }
 
 void PRLocalizer::publish_tf()
 {
-	tf2::Quaternion q;
+    tf2::Quaternion q;
     q.setRPY(0.0,0.0,tf2::getYaw(estimated_pose_.pose.orientation));
     tf2::Transform map_to_robot(q,tf2::Vector3(estimated_pose_.pose.position.x,estimated_pose_.pose.position.y,0.0));
 
@@ -81,58 +81,55 @@ void PRLocalizer::publish_tf()
 
 bool PRLocalizer::is_start()
 {
-	if(has_received_odom_) return true;
+    if(has_received_odom_) return true;
     return false;
 }
 
 bool PRLocalizer::is_observation()
 {
-	double diff_x = estimated_pose_.pose.position.x - pr_pose_.x;
-	double diff_y = estimated_pose_.pose.position.y - pr_pose_.y;
-	double dist = std::sqrt(diff_x*diff_x + diff_y*diff_y);
-	if(dist < ERROR_TH_) return true;
+    double diff_x = estimated_pose_.pose.position.x - pr_pose_.x;
+    double diff_y = estimated_pose_.pose.position.y - pr_pose_.y;
+    double dist = std::sqrt(diff_x*diff_x + diff_y*diff_y);
+    if(dist < ERROR_TH_) return true;
     if(pr_pose_.score > SCORE_TH_){
         set_particles(pr_pose_.x,pr_pose_.y,pr_pose_.theta,INIT_X_VAR_,INIT_Y_VAR_,INIT_YAW_VAR_);
     }
-	return false;
+    return false;
 }
 
 double PRLocalizer::get_weight(geometry_msgs::PoseStamped& pose)
 {
-	double weight = 0.0;
-	double diff_x = pose.pose.position.x - pr_pose_.x;
-	double diff_y = pose.pose.position.y - pr_pose_.y;
-	double diff_theta = tf2::getYaw(pose.pose.orientation) - pr_pose_.theta;
-	double score = pr_pose_.score;
+    double weight = 0.0;
+    double diff_x = pose.pose.position.x - pr_pose_.x;
+    double diff_y = pose.pose.position.y - pr_pose_.y;
+    double diff_theta = tf2::getYaw(pose.pose.orientation) - pr_pose_.theta;
+    double score = pr_pose_.score;
 
-	// position
-	double dist = std::sqrt(diff_x*diff_x + diff_y*diff_y);
-	weight += weight_func(dist,score);
+    // position
+    double dist = std::sqrt(diff_x*diff_x + diff_y*diff_y);
+    weight += weight_func(dist,score);
 
-	// orientation
-	weight += weight_func(diff_theta,score);
+    // orientation
+    weight += weight_func(diff_theta,score);
 
-	return weight;
+    return weight;
 }
 
-double PRLocalizer::weight_func(double mu,double sigma)
-{
-	return std::exp(-0.5*mu*mu/(sigma*sigma))/(std::sqrt(2.0*M_PI*sigma*sigma));
-}
+double PRLocalizer::weight_func(double mu,double sigma) { return std::exp(-0.5*mu*mu/(sigma*sigma))/(std::sqrt(2.0*M_PI*sigma*sigma)); }
 
 void PRLocalizer::process()
 {
-	ros::Rate rate(HZ_);
-	while(ros::ok()){
-		if(is_start()){
-			if(is_dense() || is_spread()){
-				double tmp_x = estimated_pose_.pose.position.x;
+    ros::Rate rate(HZ_);
+    while(ros::ok()){
+        if(is_start()){
+            if(is_dense() || is_spread()){
+                double tmp_x = estimated_pose_.pose.position.x;
                 double tmp_y = estimated_pose_.pose.position.y;
                 double tmp_yaw = tf2::getYaw(estimated_pose_.pose.orientation);
                 set_particles(tmp_x,tmp_y,tmp_yaw,INIT_X_VAR_,INIT_Y_VAR_,INIT_YAW_VAR_);
             }
-			motion_update();
-			observation_update();
+            motion_update();
+            observation_update();
             if(is_update_){
                 resample_particles();
                 sort_by_particle_weight();
@@ -143,18 +140,18 @@ void PRLocalizer::process()
             publish_particle_poses();
             publish_estimated_pose();
             publish_tf();
-		}
-		has_received_odom_ = false;		
-		previous_odom_ = current_odom_;
-		ros::spinOnce();
-		rate.sleep();
-	}
+        }
+        has_received_odom_ = false;
+        previous_odom_ = current_odom_;
+        ros::spinOnce();
+        rate.sleep();
+    }
 }
 
 int main(int argc,char** argv)
 {
-	ros::init(argc,argv,"pr_localizer");
-	PRLocalizer pr_localizer;
-	pr_localizer.process();
-	return 0;
+    ros::init(argc,argv,"pr_localizer");
+    PRLocalizer pr_localizer;
+    pr_localizer.process();
+    return 0;
 }

@@ -16,13 +16,13 @@ AMCLPoseRepublisher::AMCLPoseRepublisher() :
 
     pose_sub_ = nh_.subscribe("pose_in",1,&AMCLPoseRepublisher::pose_callback,this);
     odom_sub_ = nh_.subscribe("odom_in",1,&AMCLPoseRepublisher::odom_callback,this);
-    obj_sub_ = nh_.subscribe("obj_in",1,&AMCLPoseRepublisher::obj_callback,this);
+    od_sub_ = nh_.subscribe("od_in",1,&AMCLPoseRepublisher::od_callback,this);
 
-    pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("pose_out",1);
+    pose_pub_ = nh_.advertise<multi_localizer_msgs::RobotPoseStamped>("pose_out",1);
 
-    private_nh_.param("PUBLISH_OBJ_MSG",PUBLISH_OBJ_MSG_,{false});
-    if(PUBLISH_OBJ_MSG_){
-        obj_pub_ = nh_.advertise<multi_localizer_msgs::ObjectsData>("obj_out",1);
+    private_nh_.param("PUBLISH_OBJECTS_DATA",PUBLISH_OBJECTS_DATA_,{false});
+    if(PUBLISH_OBJECTS_DATA_){
+        data_pub_ = nh_.advertise<multi_localizer_msgs::ObjectsData>("data_out",1);
     }
 
     buffer_.reset(new tf2_ros::Buffer);
@@ -35,12 +35,16 @@ void AMCLPoseRepublisher::odom_callback(const nav_msgs::OdometryConstPtr& msg) {
 void AMCLPoseRepublisher::pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
 {
     pose_.header = msg->header;
-    pose_.pose = msg->pose.pose;
+    pose_.pose.name = ROBOT_NAME_;
+    pose_.pose.weight = 1.0;
+    pose_.pose.x = msg->pose.pose.position.x;
+    pose_.pose.y = msg->pose.pose.position.y;
+    pose_.pose.theta = tf2::getYaw(msg->pose.pose.orientation);
     pose_pub_.publish(pose_);
 
     tf2::Quaternion q;
-    q.setRPY(0.0,0.0,tf2::getYaw(pose_.pose.orientation));
-    tf2::Transform map_to_robot(q,tf2::Vector3(pose_.pose.position.x,pose_.pose.position.y,0.0));
+    q.setRPY(0.0,0.0,tf2::getYaw(msg->pose.pose.orientation));
+    tf2::Transform map_to_robot(q,tf2::Vector3(msg->pose.pose.position.x,msg->pose.pose.position.y,0.0));
 
     geometry_msgs::PoseStamped robot_to_map_pose;
     robot_to_map_pose.header.frame_id = BASE_LINK_FRAME_ID_;
@@ -65,76 +69,64 @@ void AMCLPoseRepublisher::pose_callback(const geometry_msgs::PoseWithCovarianceS
     broadcaster_->sendTransform(map_to_odom_transform);
 }
 
-void AMCLPoseRepublisher::obj_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg)
+void AMCLPoseRepublisher::od_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg)
 {
-    if(PUBLISH_OBJ_MSG_){
-        multi_localizer_msgs::ObjectsData data;
-
-        // header
+    if(PUBLISH_OBJECTS_DATA_){
+        multi_localizer_msgs::ObjectsData objects;
         ros::Time now_time = ros::Time::now();
-        data.header.frame_id = MAP_FRAME_ID_;
-        data.header.stamp = now_time;
+        objects.header.frame_id = MAP_FRAME_ID_;
+        objects.header.stamp = now_time;
+        objects.pose = pose_.pose;
 
-        // pose
-        data.pose.name = ROBOT_NAME_;
-        data.pose.weight = 1.0;
-        data.pose.x = pose_.pose.position.x;
-        data.pose.y = pose_.pose.position.y;
-        data.pose.theta = tf2::getYaw(pose_.pose.orientation);
-
-        object_detector_msgs::ObjectPositions filtered_ops;
-        filter_ops_msg(*msg,filtered_ops);
-        std::cout << msg->object_position.size() << ","
-                  << filtered_ops.object_position.size() << std::endl;
-        if(filtered_ops.object_position.empty()) return;
+        object_detector_msgs::ObjectPositions filtered_od;
+        filter_od(*msg,filtered_od);
+        if(filtered_od.object_position.empty()) return;
 
         // objects
-        for(const auto &m : filtered_ops.object_position){
-            double dist = std::sqrt(m.x*m.x + m.z*m.z);
-            double angle = std::atan2(m.z,m.x) - 0.5*M_PI;
+        for(const auto &p : filtered_od.object_position){
+            double dist = std::sqrt(p.x*p.x + p.z*p.z);
+            double angle = std::atan2(p.z,p.x) - 0.5*M_PI;
 
             multi_localizer_msgs::ObjectData object;
-            object.name = m.Class;
-            object.credibility = 1.0;
+            object.name = p.Class;
+            object.credibility = pose_.pose.weight;
             object.time = (now_time - start_time_).toSec();
-            object.x = pose_.pose.position.x + dist*std::cos(tf2::getYaw(pose_.pose.orientation) + angle);
-            object.y = pose_.pose.position.y + dist*std::sin(tf2::getYaw(pose_.pose.orientation) + angle);
-            data.data.emplace_back(object);
+            object.x = pose_.pose.x + dist*std::cos(pose_.pose.theta + angle);
+            object.y = pose_.pose.x + dist*std::sin(pose_.pose.theta + angle);
+            objects.data.emplace_back(object);
         }
-        obj_pub_.publish(data);
+        data_pub_.publish(objects);
     }
 }
 
-void AMCLPoseRepublisher::filter_ops_msg(object_detector_msgs::ObjectPositions input_ops,
-                                         object_detector_msgs::ObjectPositions& output_ops)
+void AMCLPoseRepublisher::filter_od(object_detector_msgs::ObjectPositions input_od,object_detector_msgs::ObjectPositions& output_od)
 {
-    output_ops.header = input_ops.header;
-    output_ops.object_position.clear();
+    output_od.header = input_od.header;
+    output_od.object_position.clear();
 
-    auto is_visible_range = [this](object_detector_msgs::ObjectPosition op) -> bool
-    {
-        if(op.Class == "roomba") return false;
-        if(op.Class == "fire_extinguisher") return false;
-        if(op.probability < PROBABILITY_TH_) return false;
-
-        double r_vertex_x = std::cos(0.5*(M_PI - ANGLE_OF_VIEW_));
-        double r_vertex_y = std::sin(0.5*(M_PI - ANGLE_OF_VIEW_));
-        double l_vertex_x = std::cos(0.5*(M_PI + ANGLE_OF_VIEW_));
-        double l_vertex_y = std::sin(0.5*(M_PI + ANGLE_OF_VIEW_));
-
-        double dist = std::sqrt(op.x*op.x + op.z*op.z);
-        if(VISIBLE_LOWER_DISTANCE_ < dist &&
-           dist < VISIBLE_UPPER_DISTANCE_){
-            double x = op.x;
-            double y = op.z;
-            if(r_vertex_x*y - x*r_vertex_y >= 0 && l_vertex_x*y - x*l_vertex_y <= 0) return true;
-        }
-        return false;
-    };
-
-    for(const auto &inp_op : input_ops.object_position){
-        if(is_visible_range(inp_op)) output_ops.object_position.emplace_back(inp_op);
+    for(const auto &p : input_od.object_position){
+        if(is_visible_range(p)) output_od.object_position.emplace_back(p);
     }
+}
+
+bool AMCLPoseRepublisher::is_visible_range(object_detector_msgs::ObjectPosition od)
+{
+    if(od.Class == "roomba") return false;
+    if(od.Class == "fire_extinguisher") return false;
+    if(od.probability < PROBABILITY_TH_) return false;
+
+    double r_vertex_x = std::cos(0.5*(M_PI - ANGLE_OF_VIEW_));
+    double r_vertex_y = std::sin(0.5*(M_PI - ANGLE_OF_VIEW_));
+    double l_vertex_x = std::cos(0.5*(M_PI + ANGLE_OF_VIEW_));
+    double l_vertex_y = std::sin(0.5*(M_PI + ANGLE_OF_VIEW_));
+    
+    double dist = std::sqrt(od.x*od.x + od.z*od.z);
+    if(VISIBLE_LOWER_DISTANCE_ < dist && dist < VISIBLE_UPPER_DISTANCE_){
+        double x = od.x;
+        double y = od.z;
+        if(r_vertex_x*y - x*r_vertex_y >= 0 && l_vertex_x*y - x*l_vertex_y <= 0) return true;
+    }
+    return false;
 }
 
 void AMCLPoseRepublisher::process() { ros::spin(); }

@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="config_path" default="$(find relative_recognition_localizer)/config" />
+
+    <!-- roomba1 (mcl) -->
+    <include file="$(find multi_localizer)/launch/mcl/mcl.launch" >
+        <arg name="roomba"               value="roomba1" />
+        <arg name="date"                 value="20220224" />
+        <arg name="wait_time"            value="0.0" />
+        <arg name="is_bag"               value="true" />
+        <arg name="is_map"               value="true" />
+        <arg name="publish_objects_data" value="true" />
+        <arg name="is_rviz"              value="false" />
+    </include>
+
+    <!-- roomba2 (relative_recognition_localizer) -->
+    <include file="$(find relative_recognition_localizer)/launch/relative_recognition_localizer.launch" >
+        <arg name="roomba"    value="roomba2" />
+        <arg name="date"      value="20220224" />
+        <arg name="wait_time" value="11.0" />
+        <arg name="is_bag"    value="true" />
+    </include>
+
+    <!-- rviz -->
+    <arg name="is_rviz" default="true" />
+    <group if="$(arg is_rviz)" >
+        <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg config_path)/rviz/relative_recognition_localizer/group_1.rviz" />
+    </group>
+
+</launch>

@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="config_path" default="$(find relative_recognition_localizer)/config" />
+    <arg name="roomba"      default="roomba1" />
+    <arg name="date"        default="20220224" />
+    <!-- <arg name="date"        default="20220630" /> -->
+    <arg name="wait_time"   default="0.0" />
+
+    <!-- rosbag -->
+    <arg name="is_bag" default="true" />
+    <group if="$(arg is_bag)" >
+        <include file="$(find multi_localizer)/launch/utils/bag_player.launch" >
+            <arg name="roomba"    value="$(arg roomba)" />
+            <arg name="date"      value="$(arg date)" />
+            <arg name="wait_time" value="$(arg wait_time)" />
+        </include>
+    </group>
+
+    <!-- tf_broadcaster -->
+    <include file="$(find multi_localizer)/launch/utils/tf_broadcaster.launch" >
+        <arg name="roomba" value="$(arg roomba)"/>
+    </include>
+
+    <!-- relative recognition localizer -->
+    <node pkg="relative_recognition_localizer" type="relative_recognition_localizer_node" name="$(arg roomba)_relative_recognition_localizer"  >
+        <!-- remap -->
+        <remap from="ocd_in"   to="$(arg roomba)/object_color_positions" />
+        <remap from="odom_in"   to="$(arg roomba)/roomba/odometry" />
+        <remap from="pose_out"  to="$(arg roomba)/pose" />
+        <remap from="poses_out" to="$(arg roomba)/poses" />
+
+        <!-- params  -->
+        <param name="IS_TF"                value="true" />
+        <param name="BASE_LINK_FRAME_ID"   value="$(arg roomba)/base_link" />
+
+        <!-- rosparams -->
+        <rosparam command="load" file="$(arg config_path)/params/robot_element.yaml" />
+        <rosparam command="load" file="$(arg config_path)/params/relative_recognition_localizer/$(arg date)/$(arg roomba).yaml" />
+    </node>
+
+</launch>

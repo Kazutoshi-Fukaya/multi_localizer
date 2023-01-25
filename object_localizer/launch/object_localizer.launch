@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="roomba" default="roomba1" />
+    <arg name="config_path" default="$(find object_localizer)/config" />
+    <arg name="record_path" default="$(find object_localizer)/record" />
+
+    <!-- map server -->
+    <arg name="is_map" default="true" />
+    <group if="$(arg is_map)" >
+        <node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/map.yaml" />
+    </group>
+
+    <!-- tf_broadcaster -->
+    <arg name="is_tf" default="true" />
+    <group if="$(arg is_tf)" >
+        <include file="$(find object_localizer)/launch/tf_broadcaster.launch" >
+            <arg name="roomba" value="$(arg roomba)" />
+        </include>
+    </group>
+
+    <!-- object_localizer -->
+    <arg name="is_record" default="false" />
+    <node pkg="object_localizer" type="object_localizer_node" name="$(arg roomba)_object_localizer" output="screen" >
+        <!-- remap -->
+        <remap from="map_in"    to="map" />
+        <remap from="odom_in"   to="$(arg roomba)/roomba/odometry" />
+        <remap from="ops_in"    to="$(arg roomba)/object_positions" />
+        <remap from="pose_in"   to="$(arg roomba)/amcl_pose" />
+        <remap from="pose_out"  to="$(arg roomba)/pose" />
+        <remap from="poses_out" to="$(arg roomba)/poses" />
+
+        <!-- params -->
+        <param name="BASE_LINK_FRAME_ID" value="$(arg roomba)/base_link" />
+        <param name="IS_TF"              value="$(arg is_tf)" />
+        <param name="IS_RECORD"          value="$(arg is_record)" />
+        <param name="RECORD_FILE_PATH"   value="$(arg record_path)/$(arg roomba)_" />
+        <rosparam command="load" file="$(arg config_path)/params/object_localizer.yaml" />
+
+        <!-- database -->
+        <param name="INIT_OBJECTS_FILE_NAME" value="$(arg config_path)/init_objects/20220224.csv" />
+        <rosparam command="load" file="$(arg config_path)/object_params/object_params.yaml" />
+        <rosparam command="load" file="$(arg config_path)/dynamic_objects/dynamic_objects.yaml" />
+    </node>
+
+    <!-- rviz -->
+    <arg name="is_rviz" default="true" />
+    <group if="$(arg is_rviz)" >
+        <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg config_path)/rviz/$(arg roomba)_object_localizer.rviz" />
+    </group>
+
+</launch>

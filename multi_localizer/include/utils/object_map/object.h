@@ -18,15 +18,15 @@ public:
     void print_element();
 
     bool has_observed;  // Observed or not
-    double time;        // Time 
-    double credibility; // Credibility 
+    double time;        // Time
+    double credibility; // Credibility
     double dom;         // difficulty of moving estimated by 'dom_estimator'
     double x;           // x-coordinate estimated by 'dom_estimator'
     double y;           // y-coordinate estimated by 'dom_estimator'
 
 private:
     double weight_func(double error,double sigma);
-    
+
 };
 } // namespace multi_localizer
 

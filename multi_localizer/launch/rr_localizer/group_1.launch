@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<launch>
+	<arg name="config_path" default="$(find multi_localizer)/config" />
+
+	<!--map_server -->
+    <arg name="is_map" default="true" />
+    <group if="$(arg is_map)" >
+        <node pkg="map_server" type="map_server" name="map" args="$(arg config_path)/map/static_map.yaml" />
+    </group>
+	
+	<!-- roomba1 -->
+	<include file="$(find multi_localizer)/launch/mcl/mcl.launch" >
+		<arg name="roomba"               value="roomba1" />
+		<arg name="date"                 value="20220224" />
+		<arg name="wait_time"            value="0.0" />
+		<arg name="is_bag"               value="true" />
+		<arg name="is_map"               value="false" />
+		<arg name="publish_objects_data" value="true" />
+		<arg name="is_rviz"              value="false" />
+	</include>
+
+	<!-- roomba2 -->
+	<include file="$(find multi_localizer)/launch/mono_multi_localizer.launch" >
+		<arg name="roomba"                 value="roomba2" />
+		<arg name="date"                   value="20220224" />
+		<arg name="wait_time"              value="11.0" />
+		<arg name="is_map"                 value="false" />
+		<arg name="is_rviz"                value="false" />
+		<arg name="use_place_recognition"  value="false" />
+		<arg name="use_object_detection"   value="false" />
+		<arg name="use_mutual_recognition" value="true" />
+    	<arg name="publish_objects_data"   value="false" />
+    	<arg name="publish_markers"        value="false" />
+	</include>
+
+	<!-- rviz -->
+	<arg name="is_rviz" default="true" />
+    <group if="$(arg is_rviz)" >
+		<arg name="rviz_wait_time" default="0.0" />
+        <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg config_path)/rviz/mr_localizer/group_1.rviz" launch-prefix="bash -c 'sleep $(arg rviz_wait_time); $0 $@'" />
+    </group>
+
+</launch>

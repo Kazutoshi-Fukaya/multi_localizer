@@ -1,0 +1,44 @@
+MAP_FRAME_ID: "map"
+HZ: 10
+
+# Number of Particles
+PARTICLES_NUM: 2000
+
+# Initial Position
+INIT_X: 1.2
+INIT_Y: 0.0
+INIT_YAW: 0.0
+
+# Initial Variance
+INIT_X_VAR: 0.3
+INIT_Y_VAR: 0.3
+INIT_YAW_VAR: 0.3
+
+# Variance Threshold
+LOWER_X_VAR_TH: 0.10
+LOWER_Y_VAR_TH: 0.10
+LOWER_YAW_VAR_TH: 0.15
+UPPER_X_VAR_TH: 0.80
+UPPER_Y_VAR_TH: 0.80
+UPPER_YAW_VAR_TH: 0.80
+
+# Motion Noise (robot-specific error parameters)
+ALPHA_1: 0.3
+ALPHA_2: 0.3
+ALPHA_3: 0.1
+ALPHA_4: 0.1
+
+# Resampling Parameters
+ALPHA_SLOW: 0.001
+ALPHA_FAST: 0.1
+
+# Parameters to update or not to update
+DISTANCE_TH: 0.15
+ANGLE_TH: 0.15
+
+# Percentage of particles selected
+SELECTION_RATIO: 0.2
+
+# place recognition params
+ERROR_TH: 1.5
+SCORE_TH: 0.5

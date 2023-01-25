@@ -1,0 +1,72 @@
+# object params
+
+# ============================
+# parameter
+# 
+# name: object name
+# condition: Semi-dynamic or Static
+# r: red
+# g: green
+# b: blue
+# ============================
+
+object_params:
+    - name: trash_can
+      condition: Semi-dynamic
+      r: 0.0
+      g: 1.0
+      b: 0.0
+
+    - name: fire_hydrant
+      condition: Semi-dynamic
+      r: 0.0
+      g: 0.0
+      b: 1.0
+
+    - name: fire_extinguisher
+      condition: Static
+      r: 0.0
+      g: 1.0
+      b: 1.0
+
+    - name: elevator
+      condition: Static
+      r: 0.5
+      g: 0.0
+      b: 0.5
+
+    - name: bench
+      condition: Semi-dynamic
+      r: 1.0
+      g: 0.0
+      b: 0.0
+
+    - name: big_bench
+      condition: Static
+      r: 1.0
+      g: 1.0
+      b: 0.0
+
+    - name: kitchenette_icon
+      condition: Static
+      r: 1.0
+      g: 0.0
+      b: 1.0
+
+    - name: toilet_icon
+      condition: Static
+      r: 0.0
+      g: 0.5
+      b: 0.0
+
+    - name: table
+      condition: Semi-dynamic
+      r: 0.5
+      g: 0.5
+      b: 0.0
+
+    - name: chair
+      condition: Semi-dynamic
+      r: 1.0
+      g: 0.5
+      b: 0.5

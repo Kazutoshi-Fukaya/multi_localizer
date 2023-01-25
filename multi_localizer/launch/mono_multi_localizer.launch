@@ -1,0 +1,114 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="config_path" default="$(find multi_localizer)/config" />
+    <arg name="roomba"      default="roomba1" />
+    <arg name="date"        default="20220630" />
+    <arg name="is_rviz"     default="true" />
+    <arg name="is_bag"      default="true" />
+    <arg name="is_map"      default="true" />
+    <arg name="wait_time"   default="0.0" />
+
+    <!-- place_recognition, rviz -->
+    <arg name="use_place_recognition" default="true" />
+    <group if="$(arg use_place_recognition)" >
+        <include file="$(find place_recognition)/launch/place_recognition.launch" >
+            <!-- default -->
+            <arg name="is_map"       value="$(arg is_map)" />
+            <arg name="is_bag"       value="$(arg is_bag)" />
+            <arg name="publish_img"  value="true" />
+            <arg name="publish_pose" value="false" />
+            <arg name="is_rviz"      value="false" />
+
+            <!-- params -->
+            <arg name="roomba"       value="$(arg roomba)" />
+            <arg name="date"         value="$(arg date)" />
+        </include>
+
+        <!-- rviz -->
+        <group if="$(arg is_rviz)" >
+            <arg name="rviz_wait_time" default="16.0" />
+            <node pkg="rviz" type="rviz" name="$(arg roomba)_rviz" args="-d $(arg config_path)/rviz/multi_localizer/$(arg roomba).rviz" launch-prefix="bash -c 'sleep $(arg rviz_wait_time); $0 $@'" />
+        </group>
+    </group>
+
+    <!-- no place recognition (map_server, equirectangular_convertor, rosbag, rviz) -->
+    <group unless="$(arg use_place_recognition)" >
+        <!--map_server -->
+        <group if="$(arg is_map)" >
+            <node pkg="map_server" type="map_server" name="map" args="$(find multi_localizer)/config/map/static_map.yaml" />
+        </group>
+
+        <!-- equirectangular_convertor, rosbag -->
+        <include file="$(find place_recognition)/launch/utils/equirectangular_convertor.launch" >
+            <!-- default -->
+            <arg name="is_bag"               value="$(arg is_bag)" />
+            <arg name="theta_s_mode"         value="0" />
+            <arg name="is_theta_s_visualize" value="false" />
+            <arg name="is_rviz"              value="false" />
+            <arg name="wait_time"            value="$(arg wait_time)" />
+
+            <!-- param -->
+            <arg name="roomba"               value="$(arg roomba)" />
+            <arg name="date"                 value="$(arg date)" />
+        </include>
+
+        <!-- rviz -->
+        <group if="$(arg is_rviz)" >
+            <arg name="rviz_wait_time" default="0.0" />
+            <node pkg="rviz" type="rviz" name="$(arg roomba)_rviz" args="-d $(arg config_path)/rviz/multi_localizer/$(arg roomba).rviz" launch-prefix="bash -c 'sleep $(arg rviz_wait_time); $0 $@'" />
+        </group>
+
+    </group>
+
+    <!-- tf_broadcaster -->
+    <include file="$(find multi_localizer)/launch/utils/tf_broadcaster.launch" >
+        <arg name="roomba" value="$(arg roomba)"/>
+    </include>
+
+    <!-- multi_localizer -->
+    <arg name="use_object_detection"   default="true" />
+    <arg name="use_mutual_recognition" default="false" />
+    <arg name="publish_objects_data"   default="true" />
+    <arg name="publish_markers"        default="true" />
+    <node pkg="multi_localizer" type="multi_localizer" name="$(arg roomba)_multi_localizer" output="screen" >
+        <!-- remap (mcl) -->
+        <remap from="odom_in"     to="$(arg roomba)/roomba/odometry" />
+        <remap from="pose_out"    to="$(arg roomba)/pose" />
+        <remap from="poses_out"   to="$(arg roomba)/poses" />
+
+        <!-- remap (place recognition) -->
+        <remap from="pr_pose_in"  to="$(arg roomba)/pr_pose" />
+
+        <!-- remap (object detection) -->
+        <remap from="od_in"       to="$(arg roomba)/object_positions" />
+        <remap from="data_out"    to="$(arg roomba)/objects_data" />
+        <remap from="markers_out" to="$(arg roomba)/markers" />
+
+        <!-- remap (mutual recognition) -->
+        <remap from="ocd_in"      to="$(arg roomba)/object_color_positions" />
+
+        <!-- mcl params -->
+        <param name="IS_TF"                  value="true" />
+        <param name="BASE_LINK_FRAME_ID"     value="$(arg roomba)/base_link" />
+
+        <!-- place recognition -->
+        <param name="USE_PLACE_RECOGNITION"  value="$(arg use_place_recognition)" />
+
+        <!-- object detection -->
+        <param name="USE_OBJECT_DETECTION"   value="$(arg use_object_detection)" />
+        <param name="INIT_OBJECTS_FILE_NAME" value="$(arg config_path)/init_info/$(arg date).csv" />
+        <param name="PUBLISH_OBJECTS_DATA"   value="$(arg publish_objects_data)" />
+        <param name="PUBLISH_MARKERS"        value="$(arg publish_markers)" />
+        <param name="ROBOT_NAME"             value="$(arg roomba)" />
+        <rosparam command="load" file="$(arg config_path)/params/robot_name_list.yaml" />
+        <rosparam command="load" file="$(arg config_path)/params/object_params.yaml" />
+
+        <!-- mutual recognition -->
+        <param name="USE_MUTUAL_RECOGNITION" value="$(arg use_mutual_recognition)" />
+        <rosparam command="load" file="$(arg config_path)/params/robot_element.yaml" />
+
+        <!-- rosparams (multi localizer) -->
+        <rosparam command="load" file="$(arg config_path)/params/object_localizer/$(arg date)/$(arg roomba).yaml" />
+    </node>
+
+</launch>

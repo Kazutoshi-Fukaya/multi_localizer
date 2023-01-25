@@ -53,6 +53,7 @@ private:
         }
     }
 
+    // node handle
     ros::NodeHandle private_nh_;
 };
 } // namespace multi_localizer

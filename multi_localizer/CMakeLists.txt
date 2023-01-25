@@ -43,44 +43,40 @@ include_directories(
     ${OpenCV_INCLUDE_DIRS}
 )
 
+# MCL Base
+add_library(MCLBase SHARED
+    mcl_base/mcl_base.cpp
+    mcl_base/particle.cpp
+)
+
+# Object Map
 add_library(ObjectMap SHARED
     utils/object.cpp
     utils/objects.cpp
     utils/object_map.cpp
 )
 
-# single_mcl
-add_executable(single_mcl 
-    src/mcl_base.cpp
-    src/particle.cpp
-    src/single_mcl.cpp
+# ============================== MAIN ==============================
+
+# mcl
+add_executable(mcl src/mcl.cpp)
+target_link_libraries(mcl 
+    ${catkin_LIBRARIES}
+    MCLBase
 )
-target_link_libraries(single_mcl ${catkin_LIBRARIES})
 
 # pr_localizer
-add_executable(pr_localizer
-    src/mcl_base.cpp
-    src/particle.cpp
-    src/pr_localizer.cpp
+add_executable(pr_localizer src/pr_localizer.cpp)
+target_link_libraries(pr_localizer 
+    ${catkin_LIBRARIES}
+    MCLBase
 )
-target_link_libraries(pr_localizer ${catkin_LIBRARIES})
-
-# object_localizer
-add_executable(object_localizer
-    src/mcl_base.cpp
-    src/particle.cpp
-    src/object_localizer.cpp
-)
-target_link_libraries(object_localizer ${catkin_LIBRARIES})
 
 # multi_localizer
-add_executable(multi_localizer
-    src/mcl_base.cpp
-    src/particle.cpp
-    src/multi_localizer.cpp
-)
+add_executable(multi_localizer src/multi_localizer.cpp)
 target_link_libraries(multi_localizer 
     ${catkin_LIBRARIES}
+    MCLBase
     ObjectMap
 )
 
