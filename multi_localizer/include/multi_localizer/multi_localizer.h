@@ -116,7 +116,6 @@ private:
     // Weight
     double ALPHA_;
     double BETA_;
-
 };
 } // namespace multi_localizer
 
