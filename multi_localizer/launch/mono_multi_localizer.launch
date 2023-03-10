@@ -111,4 +111,17 @@
         <rosparam command="load" file="$(arg config_path)/params/object_localizer/$(arg date)/$(arg roomba).yaml" />
     </node>
 
+    <arg name="is_record" default="false" />
+    <group if="$(arg is_record)" >
+        <node pkg="multi_localizer" type="pose_msg_recorder" name="$(arg roomba)_pose_msg_recorder"  >
+            <!-- remap -->
+            <remap from="ref_pose" to="$(arg roomba)/amcl_pose" />
+            <remap from="est_pose" to="$(arg roomba)/pose" />
+
+            <!-- param -->
+            <param name="IS_RECORD" value="$(arg is_record)" />
+            <param name="FILE_PATH" value="$(find multi_localizer)/record/$(arg roomba)" />
+        </node>
+    </group>
+
 </launch>

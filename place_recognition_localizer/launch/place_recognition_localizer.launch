@@ -1,27 +1,48 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="config_path" default="$(find place_recognition_localizer)/config" />
     <arg name="roomba"      default="roomba1" />
+    <arg name="config_path" default="$(find place_recognition_localizer)/config" />
     <arg name="date"        default="20220630" />
-    <arg name="wait_time"   default="12.0" />
+    <arg name="wait_time"   default="15.0" />
 
-    <!-- place_recognition -->
-    <include file="$(find place_recognition)/launch/place_recognition.launch" >
-        <!-- default -->
-        <arg name="is_map"       value="true" />
-        <arg name="publish_img"  value="true" />
-        <arg name="publish_pose" value="true" />
-        <arg name="is_rviz"      value="false" />
+    <!-- map_server -->
+    <arg name="is_map" default="true" />
+    <group if="$(arg is_map)" >
+        <include file="$(find ros_utils)/launch/map_server.launch" />
+    </group>
 
-        <!-- params -->
-        <arg name="roomba"       value="$(arg roomba)" />
-        <arg name="date"         value="$(arg date)" />
-        <arg name="wait_time"    value="$(arg wait_time)" />
+    <!-- rosbag -->
+    <include file="$(find ros_utils)/launch/bag_player.launch" >
+        <arg name="roomba"               value="$(arg roomba)" />
+        <arg name="wait_time"            value="$(arg wait_time)" />
+        <arg name="file_path"            value="$(env HOME)/bagfiles/experimental_file_$(arg date)/" />
+        <arg name="convertor_theta_s"    value="true" />
+        <arg name="publish_objects_data" value="false" />
     </include>
 
-    <!-- tf_broadcaster -->
-    <include file="$(find multi_localizer)/launch/utils/tf_broadcaster.launch" >
-        <arg name="roomba" value="$(arg roomba)"/>
+    <!-- place_recognition -->
+    <arg name="publish_img"  default="true" />
+    <arg name="publish_pose" default="true" />
+    <node pkg="place_recognition" type="place_recognition" name="place_recognition" output="screen" >
+        <!-- remap -->
+        <!-- <remap from="img_in" to="$(arg roomba)/equirectangular/image_raw" /> -->
+        <remap from="img_in"      to="$(arg roomba)/camera/color/image_rect_color" />
+        <remap from="pr_pose_out" to="$(arg roomba)/pr_pose" />
+        <remap from="img_out"     to="$(arg roomba)/vis_image" />
+        <remap from="pose_out"    to="$(arg roomba)/vis_pr_pose" />
+
+        <!-- params -->
+        <param name="REFERENCE_FILE_NAME" value="$(find place_recognition)/reference_data/" />
+        <param name="IMAGE_MODE"          value="rgb" />
+        <param name="DETECTOR_MODE"       value="orb" />
+        <param name="PUBLISH_IMG"         value="$(arg publish_img)" />
+        <param name="PUBLISH_POSE"        value="$(arg publish_pose)" />
+    </node>
+
+    <!-- tf_utils (only static tf) -->
+    <include file="$(find ros_utils)/launch/rosbag_tf.launch" >
+        <arg name="roomba"       value="$(arg roomba)"/>
+        <arg name="publish_pose" value="false" />
     </include>
 
     <!-- place recognition localizer -->
@@ -39,6 +60,18 @@
         <!-- rosparams -->
         <rosparam command="load" file="$(arg config_path)/params/place_recognition_localizer/$(arg date)/$(arg roomba).yaml" />
     </node>
+
+    <!-- recorder -->
+    <arg name="is_record"        default="false" />
+    <arg name="record_file_path" default="$(find mcl)/record/$(arg roomba)_" />
+    <group if="$(arg is_record)" >
+        <include file="$(find ros_utils)/launch/recorder.launch" >
+            <arg name="roomba"                     value="$(arg roomba)"/>
+            <arg name="is_record_pose"             value="true" />
+	        <arg name="is_record_object_detection" value="false" />
+	        <arg name="record_file_path"           value="$(find place_recognition_localizer)/record/$(arg roomba)_" />
+        </include>
+    </group>
 
     <!-- rviz -->
     <arg name="is_rviz" default="true" />

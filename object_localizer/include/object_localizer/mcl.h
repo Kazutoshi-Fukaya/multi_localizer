@@ -7,7 +7,6 @@
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -20,14 +19,13 @@
 #include <fstream>
 #include <sstream>
 
-// database
-#include "dynamic_objects/dynamic_objects.h"
-#include "database/database.h"
-#include "recorder/recorder.h"
+// ros_utils
+#include "ros_utils/dynamic_objects/dynamic_objects.h"
+#include "ros_utils/object_map/object_map.h"
 
 // Custom msg
-#include "multi_robot_msgs/ObjectMap.h"
-#include "multi_robot_msgs/ObjectsData.h"
+#include "multi_localizer_msgs/ObjectMap.h"
+#include "multi_localizer_msgs/ObjectsData.h"
 #include "object_detector_msgs/ObjectPositions.h"
 
 namespace object_localizer
@@ -57,7 +55,6 @@ private:
     void map_callback(const nav_msgs::OccupancyGridConstPtr& msg);
     void odom_callback(const nav_msgs::OdometryConstPtr& msg);
     void ops_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg);
-    void pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg);
 
     void init();
     void init_pose(geometry_msgs::PoseStamped& pose,double x,double y,double yaw);
@@ -71,13 +68,11 @@ private:
     void sort_by_particle_weight();
     void calc_estimated_pose();
     void calc_variance();
-    void filter_ops_msg(object_detector_msgs::ObjectPositions input_ops,
-                        object_detector_msgs::ObjectPositions& output_ops);
+    void filter_ops_msg(object_detector_msgs::ObjectPositions input_ops,object_detector_msgs::ObjectPositions& output_ops);
     void publish_particle_poses();
     void publish_estimated_pose();
-    void publish_objects_msg();
+    void publish_objects_data();
     void publish_tf();
-    void record_pose();
 
     Particle generate_particle();
     geometry_msgs::Quaternion get_quat_msg_from_yaw(double yaw);
@@ -85,11 +80,13 @@ private:
     bool is_start();
     bool is_dense();
     bool is_spread();
+    bool is_visible_range(object_detector_msgs::ObjectPosition op);
     double get_gaussian(double mu,double sigma);
     double get_angle_diff(double a,double b);
     double get_weight(geometry_msgs::PoseStamped& pose);
     double get_particle_weight_sum();
     double get_max_particle_weight();
+    double weight_function(double mu,double sigma);
 
     // node handle
     ros::NodeHandle nh_;
@@ -99,11 +96,11 @@ private:
     ros::Subscriber map_sub_;
     ros::Subscriber odom_sub_;
     ros::Subscriber ops_sub_;
-    ros::Subscriber pose_sub_;
 
     // publisher
     ros::Publisher pose_pub_;
     ros::Publisher poses_pub_;
+    ros::Publisher objects_data_pub_;
 
     // time
     ros::Time start_time_;
@@ -120,17 +117,11 @@ private:
     // particles
     std::vector<Particle> particles_;
 
-    // database
-    Database* database_;
-
-    // dynamic objects
+    // ros_utils
     DynamicObjects* dynamic_objects_;
-
-    // recorder
-    Recorder* recorder_;
+    ObjectMap* object_map_;
 
     // buffer
-    geometry_msgs::PoseWithCovarianceStamped ref_pose_;
     geometry_msgs::PoseStamped estimated_pose_;
     geometry_msgs::PoseStamped current_odom_;
     geometry_msgs::PoseStamped previous_odom_;
@@ -149,11 +140,10 @@ private:
     double distance_sum_;
     double angle_sum_;
 
-    // parameters
+    // params (mcl_base)
     std::string MAP_FRAME_ID_;
     std::string BASE_LINK_FRAME_ID_;
     bool IS_TF_;
-    bool IS_RECORD_;
     int HZ_;
     int NUM_OF_PARTICLES_;
     double INIT_X_;
@@ -178,6 +168,9 @@ private:
     double ANGLE_TH_;
     double SELECTION_RATIO_;
 
+    // params (object_localizer)
+    std::string ROBOT_NAME_;
+    bool PUBLISH_OBJECTS_DATA_;
     double PROBABILITY_TH_;
     double VISIBLE_LOWER_DISTANCE_;
     double VISIBLE_UPPER_DISTANCE_;
@@ -185,6 +178,6 @@ private:
     double DISTANCE_NOISE_;
     double ANGLE_NOISE_;
 };
-}
+} // namespace object_localizer
 
 #endif  // MCL_H_

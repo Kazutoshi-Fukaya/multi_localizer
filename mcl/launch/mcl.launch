@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="config_path" default="$(find mcl)/config" />
+    <arg name="roomba"      default="roomba1" />
+    <arg name="wait_time"   default="0.0" />
+    <arg name="date"        default="20220224" />
+    <!-- <arg name="date"        default="20220630" /> -->
+    
+    <!-- map_server -->
+    <arg name="is_map" default="true" />
+    <group if="$(arg is_map)" >
+        <include file="$(find ros_utils)/launch/map_server.launch" />
+    </group>
+
+    <!-- rosbag -->
+    <include file="$(find ros_utils)/launch/bag_player.launch" >
+        <arg name="roomba"               value="$(arg roomba)" />
+        <arg name="wait_time"            value="$(arg wait_time)" />
+        <arg name="file_path"            value="$(env HOME)/bagfiles/experimental_file_$(arg date)/" />
+        <arg name="convertor_theta_s"    value="true" />
+        <arg name="publish_objects_data" value="false" />
+    </include>
+
+    <!-- tf_utils (only static tf) -->
+    <include file="$(find ros_utils)/launch/rosbag_tf.launch" >
+        <arg name="roomba"       value="$(arg roomba)"/>
+        <arg name="publish_pose" value="false" />
+    </include>
+
+    <!-- pole_eliminator -->
+    <include file="$(find ros_utils)/launch/pole_eliminator.launch" >
+        <arg name="roomba" value="$(arg roomba)"/>
+    </include>
+
+    <!-- mcl_node -->
+    <arg name="publish_robot_pose"   default="false" />
+    <arg name="publish_objects_data" default="false" />
+    <node pkg="mcl" type="mcl_node" name="$(arg roomba)_mcl"  >
+        <!-- remap (mcl_base) -->
+        <remap from="odom_in"   to="$(arg roomba)/roomba/odometry" />
+        <remap from="pose_out"  to="$(arg roomba)/pose" />
+        <remap from="poses_out" to="$(arg roomba)/poses" />
+
+        <!-- remap (mcl_node) -->
+        <remap from="map_in"         to="map" />
+        <remap from="lsr_in"         to="$(arg roomba)/corrected_scan" />
+        <remap from="od_in"          to="$(arg roomba)/object_positions" />
+        <remap from="robot_pose_out" to="$(arg roomba)/robot_pose" />
+        <remap from="data_out"       to="$(arg roomba)/objects_data" />
+        <remap from="ref_pose"       to="$(arg roomba)/amcl_pose" />
+
+        <!-- params (mcl_base) -->
+        <param name="IS_TF"                value="true" />
+        <param name="BASE_LINK_FRAME_ID"   value="$(arg roomba)/base_link" />
+
+        <!-- params (mcl_node) -->
+        <param name="PUBLISH_OBJECTS_DATA" value="$(arg publish_objects_data)" />
+        <param name="PUBLISH_ROBOT_POSE"   value="$(arg publish_robot_pose)" />
+        <param name="ROBOT_NAME"           value="$(arg roomba)" />
+
+        <!-- rosparam (mcl_node) -->
+        <rosparam command="load" file="$(arg config_path)/params/$(arg date)/$(arg roomba).yaml" />
+    </node>
+
+    <!-- recorder -->
+    <arg name="is_record"        default="false" />
+    <arg name="record_file_path" default="$(find mcl)/record/$(arg roomba)_" />
+    <group if="$(arg is_record)" >
+        <include file="$(find ros_utils)/launch/recorder.launch" >
+            <arg name="roomba"                     value="$(arg roomba)"/>
+            <arg name="is_record_pose"             value="true" />
+	        <arg name="is_record_object_detection" value="false" />
+	        <arg name="record_file_path"           value="$(arg record_file_path)" />
+        </include>
+    </group>
+
+    <!-- rviz -->
+    <arg name="is_rviz" default="true" />
+    <group if="$(arg is_rviz)" >
+        <node pkg="rviz" type="rviz" name="$(arg roomba)_rviz" args="-d $(arg config_path)/rviz/mcl/$(arg roomba).rviz" />
+    </group>
+
+</launch>

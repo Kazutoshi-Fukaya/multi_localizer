@@ -69,6 +69,11 @@ MultiLocalizer::MultiLocalizer() :
         if(PUBLISH_MARKERS_){
             markers_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("markers_out",1);
         }
+
+        private_nh_.param("SUBSCRIBE_OBJECT_DATA",SUBSCRIBE_OBJECT_DATA_,{false});
+        if(SUBSCRIBE_OBJECT_DATA_){
+            object_map_sub_ = nh_.subscribe("object_map_in",1,&MultiLocalizer::object_map_callback,this);
+        }
     }
 
     // mutual recognition params
@@ -94,6 +99,11 @@ void MultiLocalizer::pr_callback(const place_recognition_msgs::PoseStampedConstP
 void MultiLocalizer::od_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg) { filter_od_msg(*msg,od_); }
 
 void MultiLocalizer::ocd_callback(const object_color_detector_msgs::ObjectColorPositionsConstPtr& msg) { ocd_ = *msg; }
+
+void MultiLocalizer::object_map_callback(const multi_localizer_msgs::ObjectMapConstPtr& msg)
+{
+    // TO DO
+}
 
 void MultiLocalizer::observation_update()
 {

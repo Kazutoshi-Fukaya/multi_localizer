@@ -7,35 +7,50 @@
     <arg name="wait_time"   default="0.0" />
 
     <!-- rosbag -->
-    <arg name="is_bag" default="true" />
-    <group if="$(arg is_bag)" >
-        <include file="$(find multi_localizer)/launch/utils/bag_player.launch" >
-            <arg name="roomba"    value="$(arg roomba)" />
-            <arg name="date"      value="$(arg date)" />
-            <arg name="wait_time" value="$(arg wait_time)" />
-        </include>
-    </group>
+    <include file="$(find ros_utils)/launch/bag_player.launch" >
+        <arg name="roomba"               value="$(arg roomba)" />
+        <arg name="wait_time"            value="$(arg wait_time)" />
+        <arg name="file_path"            value="$(env HOME)/bagfiles/experimental_file_$(arg date)/" />
+        <arg name="convertor_theta_s"    value="true" />
+        <arg name="publish_objects_data" value="false" />
+    </include>
 
-    <!-- tf_broadcaster -->
-    <include file="$(find multi_localizer)/launch/utils/tf_broadcaster.launch" >
-        <arg name="roomba" value="$(arg roomba)"/>
+    <!-- tf_utils (only static tf) -->
+    <include file="$(find ros_utils)/launch/rosbag_tf.launch" >
+        <arg name="roomba"       value="$(arg roomba)"/>
+        <arg name="publish_pose" value="false" />
     </include>
 
     <!-- relative recognition localizer -->
     <node pkg="relative_recognition_localizer" type="relative_recognition_localizer_node" name="$(arg roomba)_relative_recognition_localizer"  >
         <!-- remap -->
-        <remap from="ocd_in"   to="$(arg roomba)/object_color_positions" />
+        <remap from="ocd_in"    to="$(arg roomba)/object_color_positions" />
         <remap from="odom_in"   to="$(arg roomba)/roomba/odometry" />
         <remap from="pose_out"  to="$(arg roomba)/pose" />
         <remap from="poses_out" to="$(arg roomba)/poses" />
+        <remap from="ref_pose"  to="$(arg roomba)/amcl_pose" />
 
         <!-- params  -->
         <param name="IS_TF"                value="true" />
         <param name="BASE_LINK_FRAME_ID"   value="$(arg roomba)/base_link" />
+        <param name="IS_RECORD"            value="$(arg is_record)" />
+        <param name="RECORD_FILE_PATH"     value="$(arg record_file_path)" />
 
         <!-- rosparams -->
         <rosparam command="load" file="$(arg config_path)/params/robot_element.yaml" />
         <rosparam command="load" file="$(arg config_path)/params/relative_recognition_localizer/$(arg date)/$(arg roomba).yaml" />
     </node>
+
+    <!-- recorder -->
+    <arg name="is_record"        default="false" />
+    <arg name="record_file_path" default="$(find relative_recognition_localizer)/record/$(arg roomba)_" />
+    <group if="$(arg is_record)" >
+        <include file="$(find ros_utils)/launch/recorder.launch" >
+            <arg name="roomba"                     value="$(arg roomba)"/>
+            <arg name="is_record_pose"             value="true" />
+	        <arg name="is_record_object_detection" value="true" />
+	        <arg name="record_file_path"           value="$(arg record_file_path)" />
+        </include>
+    </group>
 
 </launch>

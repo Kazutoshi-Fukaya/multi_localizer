@@ -4,8 +4,8 @@ using namespace object_localizer;
 
 MCL::MCL() :
     private_nh_("~"), start_time_(ros::Time::now()), engine_(seed_()),
-    database_(new Database(nh_,private_nh_)),
     dynamic_objects_(new DynamicObjects(private_nh_)),
+    object_map_(new ObjectMap(nh_,private_nh_)),
     odom_frame_id_(std::string("")),
     has_received_map_(false), has_received_odom_(false), is_update_(false),
     x_var_(0.0), y_var_(0.0), yaw_var_(0.0),
@@ -16,6 +16,7 @@ MCL::MCL() :
     private_nh_.param("BASE_LINK_FRAME_ID",BASE_LINK_FRAME_ID_,{std::string("base_link")});
     private_nh_.param("HZ",HZ_,{10});
 
+    // params (mcl_base)
     private_nh_.param("NUM_OF_PARTICLES",NUM_OF_PARTICLES_,{2000});
     private_nh_.param("INIT_X",INIT_X_,{7.0});
     private_nh_.param("INIT_Y",INIT_Y_,{0.0});
@@ -39,10 +40,11 @@ MCL::MCL() :
     private_nh_.param("ANGLE_TH",ANGLE_TH_,{0.15});
     private_nh_.param("SELECTION_RATIO",SELECTION_RATIO_,{0.2});
 
-    // observation parameters
+    // observation params (object_localizer)
+    private_nh_.param("ROBOT_NAME",ROBOT_NAME_,{std::string("")});
     private_nh_.param("PROBABILITY_TH",PROBABILITY_TH_,{0.8});
-    private_nh_.param("VISIBLE_LOWER_DISTANCE",VISIBLE_LOWER_DISTANCE_,{5.0});
-    private_nh_.param("VISIBLE_UPPER_DISTANCE",VISIBLE_UPPER_DISTANCE_,{0.3});
+    private_nh_.param("VISIBLE_LOWER_DISTANCE",VISIBLE_LOWER_DISTANCE_,{0.3});
+    private_nh_.param("VISIBLE_UPPER_DISTANCE",VISIBLE_UPPER_DISTANCE_,{5.0});
     private_nh_.param("ANGLE_OF_VIEW",ANGLE_OF_VIEW_,{86.0/180.0*M_PI});
     private_nh_.param("DISTANCE_NOISE",DISTANCE_NOISE_,{0.1});
     private_nh_.param("ANGLE_NOISE",ANGLE_NOISE_,{0.1});
@@ -51,28 +53,25 @@ MCL::MCL() :
     odom_sub_ = nh_.subscribe("odom_in",1,&MCL::odom_callback,this);
     ops_sub_ = nh_.subscribe("ops_in",1,&MCL::ops_callback,this);
 
-    private_nh_.param("IS_RECORD",IS_RECORD_,{false});
-    if(IS_RECORD_){
-        recorder_ = new Recorder(private_nh_);
-        pose_sub_ = nh_.subscribe("pose_in",1,&MCL::pose_callback,this);
-    }
-
-    pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("pose_out",1);
-    poses_pub_ = nh_.advertise<geometry_msgs::PoseArray>("poses_out",1);
-
+    private_nh_.param("IS_TF",IS_TF_,{true});
     if(IS_TF_){
         buffer_.reset(new tf2_ros::Buffer);
         listener_.reset(new tf2_ros::TransformListener(*buffer_));
         broadcaster_.reset(new tf2_ros::TransformBroadcaster);
     }
 
+    private_nh_.param("PUBLISH_OBJECTS_DATA",PUBLISH_OBJECTS_DATA_,{false});
+    if(PUBLISH_OBJECTS_DATA_){
+        objects_data_pub_ = nh_.advertise<multi_localizer_msgs::ObjectsData>("objetcs_data",1);
+    }
+
+    pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("pose_out",1);
+    poses_pub_ = nh_.advertise<geometry_msgs::PoseArray>("poses_out",1);
+
     init();
 }
 
-MCL::~MCL()
-{
-    if(IS_RECORD_) recorder_->save_csv();
-}
+MCL::~MCL() {}
 
 void MCL::map_callback(const nav_msgs::OccupancyGridConstPtr& msg)
 {
@@ -119,14 +118,8 @@ void MCL::ops_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg)
     filter_ops_msg(*msg,ops_);
 }
 
-void MCL::pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
-{
-    ref_pose_ = *msg;
-}
-
 void MCL::init()
 {
-    database_->load_init_objects();
     init_pose(previous_odom_,0.0,0.0,0.0);
     init_pose(current_odom_,0.0,0.0,0.0);
     init_pose(estimated_pose_,INIT_X_,INIT_Y_,INIT_YAW_);
@@ -161,8 +154,7 @@ void MCL::motion_update()
 {
     double dx = current_odom_.pose.position.x - previous_odom_.pose.position.x;
     double dy = current_odom_.pose.position.y - previous_odom_.pose.position.y;
-    double dyaw = get_angle_diff(tf2::getYaw(current_odom_.pose.orientation),
-                                 tf2::getYaw(previous_odom_.pose.orientation));
+    double dyaw = get_angle_diff(tf2::getYaw(current_odom_.pose.orientation),tf2::getYaw(previous_odom_.pose.orientation));
 
     distance_sum_ += std::sqrt(dx*dx + dy*dy);
     angle_sum_ += std::fabs(dyaw);
@@ -179,12 +171,6 @@ void MCL::motion_update()
 void MCL::observation_update()
 {
     if(ops_.object_position.empty()) return;
-    if(IS_RECORD_){
-        double time = (ros::Time::now() - start_time_).toSec();
-        for(const auto &op : ops_.object_position){
-            recorder_->add_observation(time,op.Class);
-        }
-    }
     for(auto &p : particles_) p.weight_ = get_weight(p.pose_);
     normalize_particles_weight();
     calc_weight_params();
@@ -300,35 +286,10 @@ void MCL::calc_variance()
     yaw_var_ = std::sqrt(yaw_rss/(double)NUM_OF_PARTICLES_);
 }
 
-void MCL::filter_ops_msg(object_detector_msgs::ObjectPositions input_ops,
-                                           object_detector_msgs::ObjectPositions& output_ops)
+void MCL::filter_ops_msg(object_detector_msgs::ObjectPositions input_ops,object_detector_msgs::ObjectPositions& output_ops)
 {
 	output_ops.header = input_ops.header;
-    output_ops.object_position.clear();
-
-    auto is_visible_range = [this](object_detector_msgs::ObjectPosition op) -> bool
-    {
-        if(dynamic_objects_->is_included(op.Class)) return false;
-        if(op.Class == "fire_extinguisher") return false;
-        if(op.Class == "chair") return false;
-        if(op.Class == "table") return false;
-        if(op.probability <= PROBABILITY_TH_) return false;
-
-        double r_vertex_x = std::cos(0.5*(M_PI - ANGLE_OF_VIEW_));
-        double r_vertex_y = std::sin(0.5*(M_PI - ANGLE_OF_VIEW_));
-        double l_vertex_x = std::cos(0.5*(M_PI + ANGLE_OF_VIEW_));
-        double l_vertex_y = std::sin(0.5*(M_PI + ANGLE_OF_VIEW_));
-
-        double dist = std::sqrt(op.x*op.x + op.z*op.z);
-        if(VISIBLE_LOWER_DISTANCE_ < dist &&
-           dist < VISIBLE_UPPER_DISTANCE_){
-            double x = op.x;
-            double y = op.z;
-            if(r_vertex_x*y - x*r_vertex_y >= 0 && l_vertex_x*y - x*l_vertex_y <= 0) return true;
-        }
-        return false;
-    };
-
+    output_ops.object_position.clear();    
     for(const auto &inp_op : input_ops.object_position){
         if(is_visible_range(inp_op)) output_ops.object_position.emplace_back(inp_op);
     }
@@ -349,25 +310,31 @@ void MCL::publish_estimated_pose()
     pose_pub_.publish(estimated_pose_);
 }
 
-void MCL::publish_objects_msg()
+void MCL::publish_objects_data()
 {
     double weight = get_max_particle_weight();
     std::cout << "weight: " << weight << std::endl;
     ros::Time now_time = ros::Time::now();
-    multi_robot_msgs::ObjectsData data;
-    data.header.stamp = now_time;
-    data.credibility = weight;
+    multi_localizer_msgs::ObjectsData objects_data;
+    objects_data.header.stamp = now_time;
+    objects_data.header.frame_id = MAP_FRAME_ID_;
+    objects_data.pose.name = ROBOT_NAME_;
+    objects_data.pose.weight = weight;
+    objects_data.pose.x = estimated_pose_.pose.position.x;
+    objects_data.pose.y = estimated_pose_.pose.position.y;
+    objects_data.pose.theta = tf2::getYaw(estimated_pose_.pose.orientation);
     for(const auto &op: ops_.object_position){
-        multi_robot_msgs::ObjectData od;
+        multi_localizer_msgs::ObjectData object_data;
         double distance = std::sqrt(op.x*op.x + op.z*op.z);
         double angle = std::atan2(op.z,op.x) - 0.5*M_PI;
         double estimated_yaw = tf2::getYaw(estimated_pose_.pose.orientation);
 
-        od.name = op.Class;
-        od.time = (now_time - start_time_).toSec();
-        od.x = estimated_pose_.pose.position.x + distance*std::cos(estimated_yaw + angle);
-        od.y = estimated_pose_.pose.position.y + distance*std::sin(estimated_yaw + angle);
-        data.objects.emplace_back(od);
+        object_data.name = op.Class;
+        object_data.credibility = weight;
+        object_data.time = (now_time - start_time_).toSec();
+        object_data.x = estimated_pose_.pose.position.x + distance*std::cos(estimated_yaw + angle);
+        object_data.y = estimated_pose_.pose.position.y + distance*std::sin(estimated_yaw + angle);
+        objects_data.data.emplace_back(object_data);
     }
 }
 
@@ -398,18 +365,6 @@ void MCL::publish_tf()
     map_to_odom_transform.child_frame_id = odom_frame_id_;
     tf2::convert(odom_to_map.inverse(),map_to_odom_transform.transform);
     broadcaster_->sendTransform(map_to_odom_transform);
-}
-
-void MCL::record_pose()
-{
-    double time = (ros::Time::now() - start_time_).toSec();
-    recorder_->add_trajectory(time,
-                              estimated_pose_.pose.position.x,
-                              estimated_pose_.pose.position.y,
-                              tf2::getYaw(estimated_pose_.pose.orientation),
-                              ref_pose_.pose.pose.position.x,
-                              ref_pose_.pose.pose.position.y,
-                              tf2::getYaw(ref_pose_.pose.pose.orientation));
 }
 
 MCL::Particle MCL::generate_particle() { return MCL::Particle(this); }
@@ -469,6 +424,30 @@ bool MCL::is_spread()
     return false;
 }
 
+bool MCL::is_visible_range(object_detector_msgs::ObjectPosition op)
+{
+    if(dynamic_objects_->is_included(op.Class)) return false;
+    if(op.Class == "fire_extinguisher") return false;
+    if(op.Class == "chair") return false;
+    if(op.Class == "table") return false;
+    if(op.probability <= PROBABILITY_TH_) return false;
+
+    double r_vertex_x = std::cos(0.5*(M_PI - ANGLE_OF_VIEW_));
+    double r_vertex_y = std::sin(0.5*(M_PI - ANGLE_OF_VIEW_));
+    double l_vertex_x = std::cos(0.5*(M_PI + ANGLE_OF_VIEW_));
+    double l_vertex_y = std::sin(0.5*(M_PI + ANGLE_OF_VIEW_));
+
+    double dist = std::sqrt(op.x*op.x + op.z*op.z);
+    if(VISIBLE_LOWER_DISTANCE_ < dist && dist < VISIBLE_UPPER_DISTANCE_){
+        double x = op.x;
+        double y = op.z;
+        if(r_vertex_x*y - x*r_vertex_y >= 0 && l_vertex_x*y - x*l_vertex_y <= 0){
+            return true;
+        }
+    }
+    return false;
+}
+
 double MCL::get_gaussian(double mu,double sigma)
 {
     std::normal_distribution<> n_dist(mu,sigma);
@@ -502,18 +481,14 @@ double MCL::get_weight(geometry_msgs::PoseStamped& pose)
         double tmp_yaw = tf2::getYaw(estimated_pose_.pose.orientation);
         double tmp_x = estimated_pose_.pose.position.x + distance*std::cos(tmp_yaw + angle);
         double tmp_y = estimated_pose_.pose.position.y + distance*std::sin(tmp_yaw + angle);
-        Object nearest_object = database_->get_nearest_object(op.Class,tmp_x,tmp_y,sim);
+        Object nearest_object = object_map_->get_nearest_object(op.Class,tmp_x,tmp_y,sim);
         if(sim > 0.0){
-            auto weight_func = [](double mu,double sigma) -> double
-            {
-                return std::exp(-0.5*mu*mu/(sigma*sigma))/(std::sqrt(2.0*M_PI*sigma*sigma));
-            };
             double hat_x = x + distance*std::cos(yaw + angle);
             double hat_y = y + distance*std::sin(yaw + angle);
             double error_x = hat_x - nearest_object.x;
             double error_y = hat_y - nearest_object.y;
             double sigma = DISTANCE_NOISE_*distance;
-            weight += weight_func(error_x,sigma)*weight_func(error_y,sigma);
+            weight += weight_function(error_x,sigma)*weight_function(error_y,sigma);
         }
     }
     return weight;
@@ -530,52 +505,9 @@ double MCL::get_max_particle_weight()
     return particles_[max_index].weight_;
 }
 
-MCL::Particle::Particle(MCL* mcl) :
-    mcl_(mcl)
+double MCL::weight_function(double mu,double sigma)
 {
-    mcl_->init_pose(pose_,0.0,0.0,0.0);
-    weight_ = 1.0/(double)mcl_->NUM_OF_PARTICLES_;
-}
-
-void MCL::Particle::set_pose(double x,double y,double yaw,double x_var,double y_var,double yaw_var)
-{
-    double tmp_x = mcl_->get_gaussian(x,x_var);
-    double tmp_y = mcl_->get_gaussian(y,y_var);
-    double tmp_yaw = mcl_->get_gaussian(yaw,yaw_var);
-    mcl_->set_pose(pose_,tmp_x,tmp_y,tmp_yaw);
-}
-
-void MCL::Particle::move(double dx,double dy,double dyaw)
-{
-    double yaw = tf2::getYaw(pose_.pose.orientation);
-
-    double delta_trans = std::sqrt(dx*dx + dy*dy);
-    double delta_rot1;
-    if(delta_trans < 1e-2) delta_rot1 = 0.0;
-    else delta_rot1 = dyaw;
-    double delta_rot2 = mcl_->get_angle_diff(dyaw,delta_rot1);
-
-    double delta_rot1_noise = std::min(std::fabs(mcl_->get_angle_diff(delta_rot1,0.0)),
-                                       std::fabs(mcl_->get_angle_diff(delta_rot1,M_PI)));
-    double delta_rot2_noise = std::min(std::fabs(mcl_->get_angle_diff(delta_rot2,0.0)),
-                                       std::fabs(mcl_->get_angle_diff(delta_rot2,M_PI)));
-
-    double rot1_sigma = mcl_->ALPHA_1_*delta_rot1_noise*delta_rot1_noise -
-                        mcl_->ALPHA_2_*delta_trans*delta_trans;
-    double rot2_sigma = mcl_->ALPHA_1_*delta_rot2_noise*delta_rot2_noise -
-                        mcl_->ALPHA_2_*delta_trans*delta_trans;
-    double trans_sigma = mcl_->ALPHA_3_*delta_trans*delta_trans +
-                         mcl_->ALPHA_4_*delta_rot1_noise*delta_rot1_noise +
-                         mcl_->ALPHA_4_*delta_rot2_noise*delta_rot2_noise;
-
-    double delta_rot1_hat = mcl_->get_angle_diff(delta_rot1,mcl_->get_gaussian(0.0,rot1_sigma));
-    double delta_rot2_hat = mcl_->get_angle_diff(delta_rot2,mcl_->get_gaussian(0.0,rot2_sigma));
-    double delta_trans_hat = delta_trans - mcl_->get_gaussian(0.0,trans_sigma);
-
-    double tmp_x = pose_.pose.position.x + delta_trans_hat*std::cos(yaw + delta_rot1_hat);
-    double tmp_y = pose_.pose.position.y + delta_trans_hat*std::sin(yaw + delta_rot1_hat);
-    double tmp_yaw = yaw + delta_rot1_hat + delta_rot2_hat;
-    mcl_->set_pose(pose_,tmp_x,tmp_y,tmp_yaw);
+    return std::exp(-0.5*mu*mu/(sigma*sigma))/(std::sqrt(2.0*M_PI*sigma*sigma));
 }
 
 void MCL::process()
@@ -583,8 +515,7 @@ void MCL::process()
     ros::Rate rate(HZ_);
     while(ros::ok()){
         if(is_start()){
-            database_->all_objects_are_not_observed();
-
+            object_map_->all_objects_are_not_observed();
             if(is_dense() /*|| is_spread()*/ ){
                 double tmp_x = estimated_pose_.pose.position.x;
                 double tmp_y = estimated_pose_.pose.position.y;
@@ -607,22 +538,13 @@ void MCL::process()
             calc_variance();
             publish_particle_poses();
             publish_estimated_pose();
-            publish_objects_msg();
-            if(IS_RECORD_) record_pose();
+            if(PUBLISH_OBJECTS_DATA_) publish_objects_data();
             if(IS_TF_) publish_tf();
         }
-        database_->publish_markers();
+        object_map_->publish_markers();
         has_received_odom_ = false;
         previous_odom_ = current_odom_;
         ros::spinOnce();
         rate.sleep();
     }
-}
-
-int main(int argc,char** argv)
-{
-    ros::init(argc,argv,"mcl");
-    object_localizer::MCL mcl;
-    mcl.process();
-    return 0;
 }

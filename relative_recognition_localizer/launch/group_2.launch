@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="is_record"        default="false" />
+    <arg name="record_file_path" default="$(find relative_recognition_localizer)/record" />
+    <arg name="config_path"      default="$(find relative_recognition_localizer)/config" />
+    <arg name="date"             default="20220224" />
+
+    <!-- map_server -->
+    <arg name="is_map" default="true" />
+    <group if="$(arg is_map)" >
+        <include file="$(find ros_utils)/launch/map_server.launch" />
+    </group>
+
+    <!-- roomba3 (mcl_node) -->
+    <include file="$(find mcl)/launch/mcl.launch" >
+        <arg name="roomba"               value="roomba3" />
+        <arg name="wait_time"            value="0.0" />
+        <arg name="date"                 value="$(arg date)" />
+        <arg name="is_map"               value="false" />
+        <arg name="publish_robot_pose"   value="true" />
+        <arg name="publish_objects_data" value="false" />
+        <arg name="is_record"            value="$(arg is_record)" />
+        <arg name="record_file_path"     value="$(arg record_file_path)/roomba3_" />
+        <arg name="is_rviz"              value="false" />
+    </include>
+
+    <!-- roomba4 (relative_recognition_localizer_node) -->
+    <include file="$(find relative_recognition_localizer)/launch/relative_recognition_localizer.launch" >
+        <arg name="roomba"    value="roomba4" />
+        <arg name="date"      value="$(arg date)" />
+        <arg name="wait_time" value="14.0" />
+        <arg name="is_record"        value="$(arg is_record)" />
+        <arg name="record_file_path" value="$(arg record_file_path)/roomba4_" />
+    </include>
+
+    <!-- rviz -->
+    <arg name="is_rviz" default="true" />
+    <group if="$(arg is_rviz)" >
+        <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg config_path)/rviz/relative_recognition_localizer/group_2.rviz" />
+    </group>
+
+</launch>

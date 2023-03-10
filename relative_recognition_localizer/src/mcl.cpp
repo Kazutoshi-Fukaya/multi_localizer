@@ -6,6 +6,7 @@ MCL::MCL() :
     private_nh_("~"),
     pose_subs_(new PoseSubscribers(nh_,private_nh_)),
     engine_(seed_()),
+    start_time_(ros::Time::now()),
     has_received_odom_(false), is_update_(false),
     x_var_(0.0), y_var_(0.0), yaw_var_(0.0),
     weight_average_(0.0), weight_slow_(0.0), weight_fast_(0.0),
@@ -87,7 +88,6 @@ void MCL::odom_callback(const nav_msgs::OdometryConstPtr& msg)
 }
 
 void MCL::ocd_callback(const object_color_detector_msgs::ObjectColorPositionsConstPtr& msg) { ocd_ = *msg; }
-
 
 void MCL::init()
 {
@@ -303,7 +303,6 @@ void MCL::publish_tf()
 }
 
 MCL::Particle MCL::generate_particle() { return MCL::Particle(this); }
-
 
 geometry_msgs::Quaternion MCL::get_quat_msg_from_yaw(double yaw)
 {

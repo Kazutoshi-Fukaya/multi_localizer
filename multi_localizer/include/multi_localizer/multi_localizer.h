@@ -19,6 +19,7 @@
 #include <sstream>
 
 // Custom msg
+#include "multi_localizer_msgs/ObjectMap.h"
 #include "multi_localizer_msgs/ObjectsData.h"
 #include "multi_localizer_msgs/RobotPoseStamped.h"
 #include "object_detector_msgs/ObjectPositions.h"
@@ -38,6 +39,7 @@ private:
     void pr_callback(const place_recognition_msgs::PoseStampedConstPtr& msg);
     void od_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg);
     void ocd_callback(const object_color_detector_msgs::ObjectColorPositionsConstPtr& msg);
+    void object_map_callback(const multi_localizer_msgs::ObjectMapConstPtr& msg);
 
     // mcl base
     void observation_update();
@@ -70,6 +72,7 @@ private:
     ros::Subscriber pr_pose_sub_;
     ros::Subscriber od_sub_;
     ros::Subscriber ocd_sub_;
+    ros::Subscriber object_map_sub_;
 
     // publisher (for publishing obj data)
     ros::Publisher markers_pub_;
@@ -98,6 +101,7 @@ private:
     bool USE_OBJECT_DETECTION_;
     bool PUBLISH_OBJECTS_DATA_;
     bool PUBLISH_MARKERS_;
+    bool SUBSCRIBE_OBJECT_DATA_;
     std::string ROBOT_NAME_;
     double PROBABILITY_TH_;
     double VISIBLE_LOWER_DISTANCE_;

@@ -25,8 +25,11 @@ include_directories(
 
 # relative_recognition_localizer_node
 add_executable(${PROJECT_NAME}_node
-    src/particle.cpp
-    src/mcl.cpp
-    src/mcl_node.cpp
+  ros_utils/robot_element.cpp
+  ros_utils/pose_subscriber.cpp
+  ros_utils/pose_subscribers.cpp
+  src/particle.cpp
+  src/mcl.cpp
+  src/mcl_node.cpp
 )
 target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES})

@@ -5,6 +5,7 @@ add_compile_options(-o2 -g -Wall)
 
 find_package(catkin REQUIRED COMPONENTS
     cv_bridge
+    darknet_ros_msgs
     geometry_msgs
     multi_localizer_msgs
     nav_msgs
@@ -102,6 +103,25 @@ target_link_libraries(amcl_pose_republisher ${catkin_LIBRARIES})
 # recorder
 add_executable(recorder ros_utils/recorder.cpp)
 target_link_libraries(recorder ${catkin_LIBRARIES})
+
+# image_saver
+add_executable(image_saver ros_utils/image_saver.cpp)
+target_link_libraries(image_saver 
+    ${catkin_LIBRARIES}
+    ${OpenCV_LIBRARIES}
+)
+
+# bbox_msg_recorder
+add_executable(bbox_msg_recorder ros_utils/bbox_msg_recorder.cpp)
+target_link_libraries(bbox_msg_recorder ${catkin_LIBRARIES})
+
+# pose_msg_recorder
+add_executable(pose_msg_recorder ros_utils/pose_msg_recorder.cpp)
+target_link_libraries(pose_msg_recorder ${catkin_LIBRARIES})
+
+# sampler
+add_executable(sampler ros_utils/sampler.cpp)
+target_link_libraries(sampler ${catkin_LIBRARIES})
 
 # semi_dynamic_map_creator
 # add_executable(semi_dynamic_map_creator src/semi_dynamic_map_creator.cpp)
