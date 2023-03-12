@@ -8,12 +8,10 @@ namespace multi_localizer
 class RobotElement
 {
 public:
-    RobotElement() :
-        robot_name(std::string("")), color(std::string("")) {}
-        
-    RobotElement(std::string _robot_name,std::string _color) :
-        robot_name(_robot_name), color(_color) {}
+    RobotElement();        
+    RobotElement(std::string _robot_name,std::string _color);
 
+    // params
     std::string robot_name;
     std::string color;
 private:

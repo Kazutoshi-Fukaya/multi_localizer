@@ -88,7 +88,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /roomba1/output_image
+      Image Topic: /roomba1/vis_image
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -110,7 +110,6 @@ Visualization Manager:
         fire_extinguisher: true
         fire_hydrant: true
         kitchenette_icon: true
-        table: true
         toilet_icon: true
         trash_can: true
       Queue Size: 100

@@ -1,3 +1,2 @@
-.vscode
-multi_localizer/scripts/
-multi_localizer/record/
+*.vscode
+*/record/

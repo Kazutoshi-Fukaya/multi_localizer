@@ -45,17 +45,16 @@ MultiLocalizer::MultiLocalizer() :
     private_nh_.param("USE_OBJECT_DETECTION",USE_OBJECT_DETECTION_,{true});
     if(USE_OBJECT_DETECTION_){
         std::cout << "USE_OBJECT_DETECTION" << std::endl;
+        private_nh_.param("PUBLISH_MARKERS",PUBLISH_MARKERS_,{false});
         private_nh_.param("BETA",BETA_,{0.2});
         private_nh_.param("PROBABILITY_TH",PROBABILITY_TH_,{0.8});
-        private_nh_.param("VISIBLE_LOWER_DISTANCE",VISIBLE_LOWER_DISTANCE_,{5.0});
-        private_nh_.param("VISIBLE_UPPER_DISTANCE",VISIBLE_UPPER_DISTANCE_,{0.3});
+        private_nh_.param("VISIBLE_LOWER_DISTANCE",VISIBLE_LOWER_DISTANCE_,{0.3});
+        private_nh_.param("VISIBLE_UPPER_DISTANCE",VISIBLE_UPPER_DISTANCE_,{5.0});
         private_nh_.param("ANGLE_OF_VIEW",ANGLE_OF_VIEW_,{86.0/180.0*M_PI});
         private_nh_.param("SIM_TH",SIM_TH_,{0.0});
 
         robot_name_list_ = new RobotNameList(private_nh_);
-        object_map_ = new ObjectMap();
-        load_object_params(object_map_);
-        load_init_objects(object_map_);
+        object_map_ = new ObjectMap(nh_,private_nh_);
 
         od_sub_ = nh_.subscribe("od_in",1,&MultiLocalizer::od_callback,this);
 
@@ -63,16 +62,6 @@ MultiLocalizer::MultiLocalizer() :
         if(PUBLISH_OBJECTS_DATA_){
             private_nh_.param("ROBOT_NAME",ROBOT_NAME_,{std::string("roomba")});
             data_pub_ = nh_.advertise<multi_localizer_msgs::ObjectsData>("data_out",1);
-        }
-
-        private_nh_.param("PUBLISH_MARKERS",PUBLISH_MARKERS_,{false});
-        if(PUBLISH_MARKERS_){
-            markers_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("markers_out",1);
-        }
-
-        private_nh_.param("SUBSCRIBE_OBJECT_DATA",SUBSCRIBE_OBJECT_DATA_,{false});
-        if(SUBSCRIBE_OBJECT_DATA_){
-            object_map_sub_ = nh_.subscribe("object_map_in",1,&MultiLocalizer::object_map_callback,this);
         }
     }
 
@@ -83,8 +72,7 @@ MultiLocalizer::MultiLocalizer() :
         pose_subscribers_ = new PoseSubscribers(nh_,private_nh_);
         ocd_sub_ = nh_.subscribe("ocd_in",1,&MultiLocalizer::ocd_callback,this);
     }
-
-    // 
+    
     if(USE_OBJECT_DETECTION_ || USE_MUTUAL_RECOGNITION_){
         private_nh_.param("DISTANCE_NOISE",DISTANCE_NOISE_,{0.1});
     }
@@ -99,11 +87,6 @@ void MultiLocalizer::pr_callback(const place_recognition_msgs::PoseStampedConstP
 void MultiLocalizer::od_callback(const object_detector_msgs::ObjectPositionsConstPtr& msg) { filter_od_msg(*msg,od_); }
 
 void MultiLocalizer::ocd_callback(const object_color_detector_msgs::ObjectColorPositionsConstPtr& msg) { ocd_ = *msg; }
-
-void MultiLocalizer::object_map_callback(const multi_localizer_msgs::ObjectMapConstPtr& msg)
-{
-    // TO DO
-}
 
 void MultiLocalizer::observation_update()
 {
@@ -238,69 +221,7 @@ bool MultiLocalizer::is_pr_observation()
     return false;
 }
 
-void MultiLocalizer::load_object_params(ObjectMap* object_map)
-{
-    object_map->clear();
-    std::string yaml_file_name;
-    private_nh_.param("YAML_FILE_NAME",yaml_file_name,{std::string("object_params")});
-    XmlRpc::XmlRpcValue object_params;
-    if(!private_nh_.getParam(yaml_file_name.c_str(),object_params)){
-        ROS_WARN("Cloud not load %s", yaml_file_name.c_str());
-        return;
-    }
-
-    ROS_ASSERT(object_params.getType() == XmlRpc::XmlRpcValue::TypeArray);
-    for(int i = 0; i < object_params.size(); i++){
-        if(!object_params[i]["name"].valid() ||
-           !object_params[i]["condition"].valid() ||
-           !object_params[i]["r"].valid() || !object_params[i]["g"].valid() || !object_params[i]["b"].valid()){
-            ROS_WARN("%s is valid", yaml_file_name.c_str());
-            return;
-        }
-        if(object_params[i]["name"].getType() == XmlRpc::XmlRpcValue::TypeString &&
-           object_params[i]["condition"].getType() == XmlRpc::XmlRpcValue::TypeString &&
-           object_params[i]["r"].getType() == XmlRpc::XmlRpcValue::TypeDouble &&
-           object_params[i]["g"].getType() == XmlRpc::XmlRpcValue::TypeDouble &&
-           object_params[i]["b"].getType() == XmlRpc::XmlRpcValue::TypeDouble){
-            std::string name = static_cast<std::string>(object_params[i]["name"]);
-            std::string condition = static_cast<std::string>(object_params[i]["condition"]);
-            double r = static_cast<double>(object_params[i]["r"]);
-            double g = static_cast<double>(object_params[i]["g"]);
-            double b = static_cast<double>(object_params[i]["b"]);
-            ObjectParam* object_param (new ObjectParam(name,condition,Color(r,g,b)));
-            Objects* objects (new Objects());
-            object_map->insert(std::map<ObjectParam*,Objects*>::value_type(object_param,objects));
-        }
-    }
-}
-
-void MultiLocalizer::load_init_objects(ObjectMap* object_map)
-{
-    std::string init_objects_file_name;
-    private_nh_.param("INIT_OBJECTS_FILE_NAME",init_objects_file_name,{std::string("")});
-    std::ifstream ifs(init_objects_file_name);
-    std::string line;
-    while(std::getline(ifs,line)){
-        std::vector<std::string> strvec = split(line,',');
-        try{
-            std::string name = static_cast<std::string>(strvec[0]);
-            double time = static_cast<double>(std::stod(strvec[1]));
-            double x = static_cast<double>(std::stod(strvec[2]));
-            double y = static_cast<double>(std::stod(strvec[3]));
-            object_map->add_init_object(name,Object(time,1.0,x,y));
-        }
-        catch(const std::invalid_argument& ex){
-            ROS_ERROR("invalid: %s", ex.what());
-        }
-        catch(const std::out_of_range& ex){
-            ROS_ERROR("out of range: %s", ex.what());
-        }
-    }
-    ifs.close();
-}
-
-void MultiLocalizer::filter_od_msg(object_detector_msgs::ObjectPositions input_od,
-                                   object_detector_msgs::ObjectPositions& output_od)
+void MultiLocalizer::filter_od_msg(object_detector_msgs::ObjectPositions input_od,object_detector_msgs::ObjectPositions& output_od)
 {
     output_od.header = input_od.header;
     output_od.object_position.clear();
@@ -340,42 +261,6 @@ void MultiLocalizer::publish_objects_data()
     od_.object_position.clear();
 }
 
-void MultiLocalizer::publish_markers()
-{
-    visualization_msgs::MarkerArray markers;
-    int marker_id = 0;
-    for(auto it = object_map_->begin(); it != object_map_->end(); it++){
-        for(auto sit = it->second->begin(); sit != it->second->end(); sit++){
-            visualization_msgs::Marker marker;
-            marker.header.frame_id = MAP_FRAME_ID_;
-            marker.header.stamp = ros::Time::now();
-            marker.type = visualization_msgs::Marker::CUBE;
-            marker.action = visualization_msgs::Marker::ADD;
-            marker.lifetime = ros::Duration();
-            marker.scale.x = 0.4;
-            marker.scale.y = 0.4;
-            marker.scale.z = 0.6;
-            marker.id = marker_id;
-            marker.ns = it->first->name;
-            marker.pose.position.x = sit->x;
-            marker.pose.position.y = sit->y;
-            marker.pose.position.z = 0.0;
-            marker.pose.orientation.x = 0.0;
-            marker.pose.orientation.y = 0.0;
-            marker.pose.orientation.z = 0.0;
-            marker.pose.orientation.w = 1.0;
-            marker.color.r = it->first->color.r;
-            marker.color.g = it->first->color.g;
-            marker.color.b = it->first->color.b;
-            if(sit->has_observed) marker.color.a = 1.0;
-            else marker.color.a = 0.3;
-            markers.markers.emplace_back(marker);
-            marker_id++;
-        }
-    }
-    markers_pub_.publish(markers);
-}
-
 bool MultiLocalizer::is_od_observation()
 {
     if(!USE_OBJECT_DETECTION_) return false;
@@ -411,16 +296,6 @@ bool MultiLocalizer::is_mr_observation()
     return true;
 }
 
-
-std::vector<std::string> MultiLocalizer::split(std::string& input,char delimiter)
-{
-    std::istringstream stream(input);
-    std::string field;
-    std::vector<std::string> result;
-    while(std::getline(stream,field,delimiter)) result.push_back(field);
-    return result;
-}
-
 double MultiLocalizer::weight_func(double mu,double sigma) { return std::exp(-0.5*mu*mu/(sigma*sigma))/(std::sqrt(2.0*M_PI*sigma*sigma)); }
 
 void MultiLocalizer::process()
@@ -453,18 +328,10 @@ void MultiLocalizer::process()
             if(USE_OBJECT_DETECTION_ && PUBLISH_OBJECTS_DATA_) publish_objects_data();
             if(IS_TF_) publish_tf();
         }
-        if(USE_OBJECT_DETECTION_ && PUBLISH_MARKERS_) publish_markers();
+        if(USE_OBJECT_DETECTION_ && PUBLISH_MARKERS_) object_map_->publish_markers();
         has_received_odom_ = false;
         previous_odom_ = current_odom_;
         ros::spinOnce();
         rate.sleep();
     }
-}
-
-int main(int argc,char** argv)
-{
-    ros::init(argc,argv,"multi_localizer");
-    MultiLocalizer multi_localizer;
-    multi_localizer.process();
-    return 0;
 }

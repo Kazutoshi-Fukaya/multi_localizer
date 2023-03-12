@@ -10,34 +10,14 @@ namespace multi_localizer
 class PoseSubscriber
 {
 public:
-    PoseSubscriber() :
-        topic_name_(std::string("")) { }
+    PoseSubscriber();
+    PoseSubscriber(ros::NodeHandle _nh,std::string _topic_name);
 
-    PoseSubscriber(ros::NodeHandle _nh,std::string _topic_name) :
-        nh_(_nh), topic_name_(_topic_name) { setup_subscriber(); }
-
-    bool get_pose(multi_localizer_msgs::RobotPoseStamped& pose)
-    {
-        if(has_received_pose_){
-            pose = pose_;
-            return true;
-        }
-        return false;
-    }
-
-    void set_received_flag(bool flag) { has_received_pose_ = flag; }
+    void set_received_flag(bool flag);
+    bool get_pose(multi_localizer_msgs::RobotPoseStamped& pose);
 
 private:
-    void pose_callback(const multi_localizer_msgs::RobotPoseStampedConstPtr msg)
-    {
-        pose_ = *msg;
-        has_received_pose_ = true;
-    }
-
-    void setup_subscriber() { pose_sub_ = nh_.subscribe(topic_name_,10,&PoseSubscriber::pose_callback,this); }
-
-    // node handler
-    ros::NodeHandle nh_;
+    void pose_callback(const multi_localizer_msgs::RobotPoseStampedConstPtr msg);
 
     // subscriber
     ros::Subscriber pose_sub_;
@@ -45,7 +25,6 @@ private:
     // buffer
     multi_localizer_msgs::RobotPoseStamped pose_;
     bool has_received_pose_;
-    std::string topic_name_;
 };
 } // namespace multi_localizer
 

@@ -4,12 +4,9 @@ HZ: 10
 PARTICLES_NUM: 1000
 
 # Initial Position
-# INIT_X: 7.4
-# INIT_Y: 1.4
-# INIT_YAW: 1.5708
 INIT_X: 0.0
-INIT_Y: 16.0
-INIT_YAW: -3.14
+INIT_Y: -1.2
+INIT_YAW: -1.5708
 
 # Initial Variance
 INIT_X_VAR: 0.3
@@ -41,11 +38,19 @@ ANGLE_TH: 0.1
 # Percentage of particles selected
 SELECTION_RATE: 0.2
 
+# place recognition params
+ALPHA: 0.7
+ERROR_TH: 1.5
+SCORE_TH: 0.5
+
 # object_detector_msgs::ObjectPositions filter params
+BETA: 0.2
 PROBABILITY_TH: 0.8
 VISIBLE_LOWER_DISTANCE: 0.4
 VISIBLE_UPPER_DISTANCE: 6.5
 # ANGLE_OF_VIEW: 1.50
+SIM_TH: 0.0
 
 # Observation Update Parameters
 DISTANCE_NOISE: 0.05
+
