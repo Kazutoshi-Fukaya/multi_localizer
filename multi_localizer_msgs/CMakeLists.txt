@@ -15,6 +15,8 @@ add_message_files(
   ObjectsData.msg
   RobotPose.msg
   RobotPoseStamped.msg
+  SimpleObjectData.msg
+  SimpleObjectMap.msg
 )
 
 generate_messages(
